@@ -1496,12 +1496,19 @@ function facingClosedDoor() {
   });
 }
 
+const mobEncounterCard = (def) => ({
+  name: def.name, badge: def.role || def.badge || 'mob', image: def.image, icon: def.icon,
+});
+
 // pick the right card for Carl's current position
 function encounterForCarl() {
   if (!currentLevelMap || !carlPos) return null;
   const mob = mobDefAt(carlPos.x, carlPos.y);
-  if (mob) {
-    return { name: mob.name, badge: mob.role || 'mob', image: mob.image, icon: mob.icon };
+  if (mob) return mobEncounterCard(mob);
+  // a live mob standing next to Carl — show what he's about to run into
+  for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+    const adj = mobDefAt(carlPos.x + dx, carlPos.y + dy);
+    if (adj) return mobEncounterCard(adj);
   }
   const ch = mapTileAt(carlPos.x, carlPos.y);
   if (ch === 'E') return TILE_ENCOUNTERS.entrance;
@@ -1513,6 +1520,7 @@ function encounterForCarl() {
 
 function updateEncounter() {
   if (selectedInvSlot) return; // a selected inventory item is pinned in the panel
+  if (battle && battle.mobDef) { renderEncounter(mobEncounterCard(battle.mobDef)); return; }
   renderEncounter(inSafeRoom ? safeRoomEncounterForCarl() : encounterForCarl());
 }
 
@@ -2330,8 +2338,7 @@ function setCombatButtons(...keys) {
 // stands on it). Carl may be adjacent when a mob blocks a 1-wide corridor.
 function openBattle(mobDef, mx, my) {
   if (!mapCombatEl || !carlPos) return;
-  deselectInvItem();  // let the mob's card sit in the ENCOUNTERS panel
-  updateEncounter();  // (Carl shares its tile) until Carl picks an item
+  deselectInvItem();  // drop any pinned item so the mob's card shows
   battle = {
     mobDef,
     cx: (typeof mx === 'number') ? mx : carlPos.x,
@@ -2345,6 +2352,7 @@ function openBattle(mobDef, mx, my) {
     lowHpBarked: false,
     over: false,
   };
+  updateEncounter();  // pin the mob's card in the ENCOUNTERS panel
 
   combatResultEl.hidden = true;
   combatResultEl.className = 'combat-result';
