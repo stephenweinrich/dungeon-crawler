@@ -1,0 +1,202 @@
+{
+  "level": 1,
+  "name": "The Threshold",
+  "subtitle": "Floor 1",
+  "grid": {
+    "cols": 32,
+    "rows": 20,
+    "cell": 24
+  },
+  "legend": {
+    " ": "void",
+    "#": "wall",
+    ".": "floor",
+    "+": "door",
+    "E": "entrance",
+    "B": "boss-floor",
+    "D": "boss-door",
+    "S": "safe-room"
+  },
+  "start": {
+    "x": 1,
+    "y": 10
+  },
+  "rooms": [
+    {
+      "id": "entry",
+      "name": "Entry Stair",
+      "x": 2,
+      "y": 7,
+      "w": 6,
+      "h": 6,
+      "type": "start",
+      "doors": [
+        {
+          "x": 8,
+          "y": 10
+        }
+      ]
+    },
+    {
+      "id": "hall",
+      "name": "Pillar Hall",
+      "x": 12,
+      "y": 6,
+      "w": 8,
+      "h": 8,
+      "type": "room",
+      "doors": [
+        {
+          "x": 11,
+          "y": 10
+        },
+        {
+          "x": 20,
+          "y": 10
+        }
+      ]
+    },
+    {
+      "id": "vault",
+      "name": "Sealed Vault",
+      "x": 13,
+      "y": 1,
+      "w": 6,
+      "h": 4,
+      "type": "treasure",
+      "doors": [
+        {
+          "x": 15,
+          "y": 5
+        }
+      ]
+    },
+    {
+      "id": "barracks",
+      "name": "Ruined Barracks",
+      "x": 11,
+      "y": 15,
+      "w": 8,
+      "h": 4,
+      "type": "room",
+      "doors": [
+        {
+          "x": 14,
+          "y": 14
+        }
+      ]
+    },
+    {
+      "id": "ante",
+      "name": "Antechamber",
+      "x": 21,
+      "y": 8,
+      "w": 4,
+      "h": 5,
+      "type": "room",
+      "doors": []
+    }
+  ],
+  "bossRoom": {
+    "id": "warden",
+    "name": "Warden's Reliquary",
+    "x": 26,
+    "y": 2,
+    "w": 5,
+    "h": 16,
+    "type": "boss",
+    "door": {
+      "x": 25,
+      "y": 10
+    }
+  },
+  "safeRoom": {
+    "x": 22,
+    "y": 9
+  },
+  "mobs": [
+    {
+      "id": "apartment-cockroach",
+      "x": 9,
+      "y": 10
+    },
+    {
+      "id": "reanimated-tenant",
+      "x": 12,
+      "y": 10
+    },
+    {
+      "id": "reanimated-tenant",
+      "x": 15,
+      "y": 4
+    },
+    {
+      "id": "gutter-rat",
+      "x": 14,
+      "y": 15
+    },
+    {
+      "id": "gutter-rat",
+      "x": 21,
+      "y": 10
+    },
+    {
+      "id": "basement-ooze",
+      "x": 16,
+      "y": 18
+    },
+    {
+      "id": "crawlspace-goblin",
+      "x": 18,
+      "y": 9
+    },
+    {
+      "id": "basement-ooze",
+      "x": 13,
+      "y": 18
+    },
+    {
+      "id": "apartment-cockroach",
+      "x": 5,
+      "y": 8
+    },
+    {
+      "id": "crawlspace-goblin",
+      "x": 19,
+      "y": 12
+    },
+    {
+      "id": "gutter-rat",
+      "x": 18,
+      "y": 13
+    },
+    {
+      "id": "warden",
+      "x": 29,
+      "y": 10,
+      "boss": true
+    }
+  ],
+  "tiles": [
+    "            ########            ",
+    "            #......#     #######",
+    "            #......#     #BBBBB#",
+    "            #......#     #BBBBB#",
+    "            #......#     #BBBBB#",
+    "           ####+#####    #BBBBB#",
+    " ########  #........#    #BBBBB#",
+    " #......#  #........######BBBBB#",
+    " #......#  #..#..#..#....#BBBBB#",
+    "##......####........#.S..#BBBBB#",
+    "#E......+..+........+....DBBBBB#",
+    "##......####..#..#..#....#BBBBB#",
+    " #......#  #........#....#BBBBB#",
+    " ########  #........######BBBBB#",
+    "          ####+######    #BBBBB#",
+    "          #........#     #BBBBB#",
+    "          #........#     #BBBBB#",
+    "          #........#     #BBBBB#",
+    "          #........#     #######",
+    "          ##########            "
+  ]
+}

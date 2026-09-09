@@ -1,0 +1,12 @@
+# dependencies
+node_modules/
+
+# player save files — written at runtime by server.js, not source
+data/slot-*.json
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.log
+.vscode/
+.idea/

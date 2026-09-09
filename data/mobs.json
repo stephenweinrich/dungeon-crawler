@@ -1,0 +1,98 @@
+{
+  "_comment": "Master bestiary — every mob that can appear in the dungeon, grouped by floor. Carl's kills / discoveries live in the save slot, not here. Stats are 'moderate threat' floor-1 placeholders and are safe to tune once combat exists.",
+  "statKeys": {
+    "hp": "Hit Points — damage the mob soaks before it dies",
+    "attack": "Attack — base damage it deals to Carl",
+    "defense": "Defense — flat damage reduction on incoming hits",
+    "xp": "Experience awarded to Carl on the kill"
+  },
+  "levels": {
+    "1": [
+      {
+        "id": "gutter-rat",
+        "name": "Gutter Rat",
+        "icon": "🐀",
+        "image": "assets/mobs/gutter-rat.png",
+        "iconImage": "assets/icons/mob-gutter-rat.png",
+        "role": "fast fodder",
+        "hp": 16,
+        "attack": 6,
+        "defense": 1,
+        "xp": 32,
+        "basedOn": "canon: giant/dire rats are recurring low-floor pests throughout the series",
+        "description": "Local wildlife that took the apocalypse in stride. It was already living in the walls; the System just handed it a health bar and a grudge. Travels in packs because it has read the crowd-sourced strategy guides and you have not."
+      },
+      {
+        "id": "apartment-cockroach",
+        "name": "Apartment Cockroach",
+        "icon": "🪳",
+        "image": "assets/mobs/apartment-cockroach.png",
+        "iconImage": "assets/icons/mob-apartment-cockroach.png",
+        "role": "swarm nuisance",
+        "hp": 22,
+        "attack": 5,
+        "defense": 4,
+        "xp": 38,
+        "basedOn": "canon: giant cockroaches infest the early transformed-apartment floors; Carl and Donut fight them constantly",
+        "description": "Survived the meteors, the reality collapse, and every tenant who ever lived above unit 4B. The System files it under 'Vermin, Ascended.' One is a nuisance; a nest is an HR complaint you cannot win."
+      },
+      {
+        "id": "crawlspace-goblin",
+        "name": "Crawlspace Goblin",
+        "icon": "👺",
+        "image": "assets/mobs/crawlspace-goblin.png",
+        "iconImage": "assets/icons/mob-crawlspace-goblin.png",
+        "role": "melee grunt",
+        "hp": 28,
+        "attack": 10,
+        "defense": 3,
+        "xp": 50,
+        "basedOn": "tone: goblins appear in the series, but this crawlspace-squatter framing is invented for Floor 1",
+        "description": "A knee-high entrepreneur who has annexed three feet of ductwork as sovereign territory and defends it with a sharpened spork. Drops decent loot, most of it lifted off crawlers who also underestimated the spork."
+      },
+      {
+        "id": "reanimated-tenant",
+        "name": "Reanimated Tenant",
+        "icon": "🧟",
+        "image": "assets/mobs/reanimated-tenant.png",
+        "iconImage": "assets/icons/mob-reanimated-tenant.png",
+        "role": "slow bruiser",
+        "hp": 45,
+        "attack": 8,
+        "defense": 2,
+        "xp": 66,
+        "basedOn": "canon: the dungeon is thick with reanimated dead; the 'two months behind on rent' identity is tone flavor",
+        "description": "Was sixty days past due when the world ended and is somehow still being pursued for it. Shuffles toward you with the slow, unstoppable calm of a man with nothing left to lose and a clipboard where his soul used to be. Hits like an eviction notice."
+      },
+      {
+        "id": "basement-ooze",
+        "name": "Basement Ooze",
+        "icon": "🟢",
+        "image": "assets/mobs/basement-ooze.png",
+        "iconImage": "assets/icons/mob-basement-ooze.png",
+        "role": "corrosive tank",
+        "hp": 38,
+        "attack": 7,
+        "defense": 5,
+        "xp": 60,
+        "basedOn": "tone: oozes are standard dungeon fare; the water-heater-runoff origin is invented for Floor 1",
+        "description": "The combined runoff of every water heater, litter box, and forgotten smoothie in the building, now sentient and mildly litigious. It doesn't chase you so much as expand its jurisdiction. Dissolves your boots first, as a statement."
+      },
+      {
+        "id": "warden",
+        "name": "The Warden",
+        "boss": true,
+        "icon": "🗝️",
+        "image": "assets/mobs/warden.png",
+        "iconImage": "assets/icons/mob-warden.png",
+        "role": "floor boss",
+        "hp": 180,
+        "attack": 20,
+        "defense": 8,
+        "xp": 500,
+        "basedOn": "room 'Warden's Reliquary' + DCC's early-floor keeper/jailer archetype. The exact Book 1 Floor 1 boss isn't pinned down here, so this is room-name-driven and tone-accurate rather than confirmed canon — swap freely once you name the book boss.",
+        "description": "The System's appointed keeper of everything Floor One's dead no longer need — confiscated blades, unclaimed corpses, the security deposits of crawlers who never made the stairs. It wears a rusted iron helm with no eye-slits and carries a ring of keys for every door you were forced to smash through. It has never lost a fight in this room. Put it down and the Reliquary opens; the sponsors would honestly prefer you tried and failed on camera."
+      }
+    ]
+  }
+}

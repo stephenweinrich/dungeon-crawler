@@ -1,0 +1,756 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dungeon Crawler // The Show</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=MedievalSharp&family=Bangers&family=Special+Elite&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- CRT scanline / vignette overlay -->
+  <div class="crt-overlay"></div>
+
+  <div class="save-toast" id="save-toast"></div>
+
+  <div class="screen title-screen active">
+    <div class="dungeon-frame">
+
+      <!-- corner ornaments -->
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <!-- torches -->
+      <div class="torch torch-left">
+        <div class="flame"></div>
+        <div class="sconce"></div>
+      </div>
+      <div class="torch torch-right">
+        <div class="flame"></div>
+        <div class="sconce"></div>
+      </div>
+
+      <div class="content">
+
+        <p class="show-kicker">◆ A LEVEL 1 CRAWLER PRODUCTION ◆</p>
+
+        <!-- ===================================================
+             TITLE GRAPHIC
+             assets/images/title-logo.png
+             =================================================== -->
+        <div class="title-graphic-placeholder">
+          <img
+            src="assets/images/title-logo.png"
+            alt="Dungeon Crawler - Title Logo"
+            class="title-graphic-img"
+            onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"
+          >
+          <div class="placeholder-fallback">
+            <span class="placeholder-icon">☠</span>
+            <span class="placeholder-label">TITLE GRAPHIC GOES HERE</span>
+            <span class="placeholder-sub">drop file at assets/images/title-logo.png</span>
+          </div>
+        </div>
+
+        <p class="tagline">"Welcome, Crawler... to your funeral."</p>
+
+        <button id="start-btn" class="dungeon-button" type="button">
+          <span class="btn-bracket">▶</span>
+          <span class="btn-text">START</span>
+          <span class="btn-bracket">◀</span>
+        </button>
+
+        <p class="flavor-text">Press Start to Enter the Dungeon</p>
+        <p class="version-text">v0.1 // Floor 1</p>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       BACKSTORY SCREEN - 5-slide click-through comic prologue
+       =========================================================== -->
+  <div class="screen backstory-screen">
+    <div class="dungeon-frame comic-frame">
+
+      <!-- corner ornaments -->
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <!-- torches -->
+      <div class="torch torch-left">
+        <div class="flame"></div>
+        <div class="sconce"></div>
+      </div>
+      <div class="torch torch-right">
+        <div class="flame"></div>
+        <div class="sconce"></div>
+      </div>
+
+      <button id="skip-btn" class="skip-link" type="button">SKIP ▶▶</button>
+
+      <div class="content comic-content">
+
+        <p id="scene-tag" class="scene-tag">SCENE 1 OF 5</p>
+
+        <!-- ===================================================
+             COMIC PANEL PLACEHOLDER (updated by js/main.js)
+             Files expected at:
+             assets/images/backstory-1.png ... backstory-5.png
+             Recommended size: ~1200x900px (4:3 comic panel)
+             =================================================== -->
+        <div class="comic-panel" id="comic-panel">
+          <img id="comic-img" alt="" class="comic-img">
+          <div class="placeholder-fallback">
+            <span class="placeholder-icon">☠</span>
+            <span class="placeholder-label" id="comic-missing-label">COMIC PANEL GOES HERE</span>
+            <span class="placeholder-sub" id="comic-missing-path"></span>
+          </div>
+        </div>
+
+        <p id="comic-caption" class="comic-caption"></p>
+
+        <div class="slide-nav">
+          <button id="back-btn" class="dungeon-button nav-btn" type="button">
+            <span class="btn-bracket">◀</span>
+            <span class="btn-text">BACK</span>
+          </button>
+
+          <div class="progress-dots" id="progress-dots"></div>
+
+          <button id="next-btn" class="dungeon-button nav-btn" type="button">
+            <span class="btn-text">NEXT</span>
+            <span class="btn-bracket">▶</span>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       MAIN GAME SCREEN - full-screen dungeon HUD
+       =========================================================== -->
+  <div class="screen game-screen">
+    <div class="hud">
+
+      <!-- ---------- top bar ---------- -->
+      <div class="hud-panel hud-topbar">
+        <div class="topbar-left">
+          <button id="menu-btn" class="topbar-exit" type="button" title="Open menu (Ctrl+M)">☰ MENU</button>
+          <button id="guide-quick-btn" class="topbar-exit" type="button" title="Open guide book (Ctrl+G)">📖 GUIDE BOOK</button>
+          <button id="quick-save-btn" class="topbar-exit" type="button" title="Quick save to the active slot (Ctrl+S)" hidden>💾 QUICK SAVE</button>
+        </div>
+        <span class="topbar-floor">FLOOR 1</span>
+        <span class="topbar-brand">DUNGEON CRAWLER</span>
+      </div>
+
+      <!-- ---------- left sidebar: Carl ---------- -->
+      <aside class="hud-panel hud-left">
+        <div class="portrait" id="carl-portrait">
+          <img src="assets/images/carl-portrait.png" alt="Carl" class="portrait-img"
+               onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+          <div class="portrait-fallback"><span class="placeholder-icon">🧔</span></div>
+        </div>
+        <p class="unit-name">CARL</p>
+        <p class="unit-title">Level 1 Crawler</p>
+
+        <div class="stat-bar hp-bar">
+          <div class="stat-bar-label"><span>HP</span><span class="stat-bar-value" id="hp-bar-value">86 / 100</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" id="hp-bar-fill" style="width:86%"></div></div>
+        </div>
+        <div class="stat-bar sp-bar">
+          <div class="stat-bar-label"><span>SP</span><span class="stat-bar-value" id="sp-bar-value">40 / 60</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" id="sp-bar-fill" style="width:67%"></div></div>
+        </div>
+        <div class="stat-bar xp-bar">
+          <div class="stat-bar-label"><span>XP</span><span class="stat-bar-value" id="xp-bar-value">120 / 300</span></div>
+          <div class="stat-bar-track"><div class="stat-bar-fill" id="xp-bar-fill" style="width:40%"></div></div>
+        </div>
+
+        <div class="stats-box">
+          <p class="panel-heading">STATS</p>
+          <div class="stat-row" title="Raw physical power. Boosts melee damage and how much you can carry."><span class="stat-name">STRENGTH</span><span class="stat-value" id="hud-str-value">14</span></div>
+          <div class="stat-row" title="Speed and reflexes. Raises your Max SP — the stamina behind every dodge and swing."><span class="stat-name">DEXTERITY</span><span class="stat-value" id="hud-dex-value">12</span></div>
+          <div class="stat-row" title="Grit and toughness. Raises your Max HP, so you can take more hits before the dungeon takes you."><span class="stat-name">CONSTITUTION</span><span class="stat-value" id="hud-con-value">13</span></div>
+          <div class="stat-row" title="The System's favor. Boosts bonus XP earned from encounters and your odds at rare loot."><span class="stat-name">LUCK</span><span class="stat-value" id="hud-luck-value">9</span></div>
+        </div>
+
+        <p class="panel-heading">INVENTORY</p>
+        <div class="inventory-grid" id="inventory-grid">
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+        </div>
+
+        <p class="panel-heading">GOLD</p>
+        <div class="gold-box">
+          <span class="gold-box-icon">🪙</span>
+          <span class="gold-box-value" id="gold-value">245</span>
+        </div>
+
+        <p class="panel-heading">STAT POINTS</p>
+        <div class="statpoints-box" id="statpoints-box">
+          <span class="statpoints-box-icon">✦</span>
+          <span class="statpoints-box-value" id="statpoints-value">0</span>
+        </div>
+      </aside>
+
+      <!-- ---------- center: map + chat ---------- -->
+      <section class="hud-center">
+
+        <!-- ===================================================
+             DUNGEON MAP PLACEHOLDER
+             Will be replaced by a procedurally generated /
+             rendered map later.
+             =================================================== -->
+        <div class="hud-panel hud-map" id="dungeon-map">
+          <p class="map-title" id="map-title">DUNGEON MAP</p>
+          <div class="map-viewport" id="map-viewport">
+            <p class="map-label">loading floor&hellip;</p>
+          </div>
+          <div class="map-legend" id="map-legend"></div>
+          <p class="saferoom-hint" id="saferoom-hint" hidden></p>
+
+          <!-- ===================================================
+               IN-PANEL COMBAT - turn-based combat, drawn over the
+               map while a fight is on. The mob's card stays in the
+               ENCOUNTERS panel; dice rolls and outcomes go to the
+               SYSTEM LOG. Carl uses items straight from the sidebar
+               (select, then U) - it costs his turn. Driven by
+               js/main.js.
+               =================================================== -->
+          <div class="map-combat" id="map-combat" aria-live="polite">
+            <div class="combat-hud">
+              <span class="combat-round" id="combat-round">ROUND 1</span>
+              <span class="combat-turn t-you" id="combat-turn">YOUR MOVE</span>
+              <button class="combat-fast-btn" id="combat-fast-btn" type="button" title="Toggle fast combat animations">FAST &#9654;&#9654;</button>
+            </div>
+
+            <div class="combat-arena" id="combat-arena">
+              <div class="combatant combatant-carl">
+                <div class="combatant-portrait" id="combat-carl-portrait">
+                  <img id="combat-carl-img" src="assets/images/carl-portrait.png" alt="Carl"
+                       onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                  <div class="combatant-fallback"><span class="placeholder-icon">&#129492;</span></div>
+                  <span class="combatant-float" id="combat-carl-float"></span>
+                </div>
+                <p class="combatant-name">CARL</p>
+                <div class="combat-bar hp">
+                  <span class="combat-bar-ghost" id="combat-carl-hp-ghost"></span>
+                  <span class="combat-bar-fill" id="combat-carl-hp-fill"></span>
+                  <span class="combat-bar-val" id="combat-carl-hp-val">&ndash;</span>
+                </div>
+                <div class="combat-bar sp">
+                  <span class="combat-bar-fill" id="combat-carl-sp-fill"></span>
+                  <span class="combat-bar-val" id="combat-carl-sp-val">&ndash;</span>
+                </div>
+              </div>
+
+              <div class="combat-vs" id="combat-vs">
+                <span class="combat-vs-sigil">&#9876;</span>
+                <div class="combat-die" id="combat-die" hidden><span class="combat-die-face" id="combat-die-face">20</span></div>
+                <div class="combat-stamp" id="combat-stamp"></div>
+              </div>
+
+              <div class="combatant combatant-mob">
+                <div class="combatant-portrait" id="combat-mob-portrait">
+                  <img id="combat-mob-img" src="" alt=""
+                       onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                  <div class="combatant-fallback"><span class="placeholder-icon">&#10068;</span></div>
+                  <span class="combatant-float" id="combat-mob-float"></span>
+                </div>
+                <p class="combatant-name" id="combat-mob-name">MOB</p>
+                <div class="combat-bar hp">
+                  <span class="combat-bar-ghost" id="combat-mob-hp-ghost"></span>
+                  <span class="combat-bar-fill" id="combat-mob-hp-fill"></span>
+                  <span class="combat-bar-val" id="combat-mob-hp-val">&ndash;</span>
+                </div>
+              </div>
+            </div>
+
+            <p class="combat-callout" id="combat-callout"></p>
+            <p class="combat-note" id="combat-note" hidden></p>
+            <p class="combat-result" id="combat-result" hidden></p>
+            <p class="combat-hint"><strong>F</strong> fight &middot; <strong>D</strong> defend (brace, +25% SP, sets up a riposte) &middot; <strong>U</strong> use the selected item &mdash; every action takes your turn.</p>
+            <div class="combat-buttons" id="combat-buttons"></div>
+          </div>
+        </div>
+
+        <div class="hud-panel hud-chat">
+          <p class="panel-heading">CHAT</p>
+          <div class="chat-log" id="chat-log"></div>
+        </div>
+      </section>
+
+      <!-- ---------- right sidebar: encounters / Donut / log ---------- -->
+      <aside class="hud-panel hud-right">
+
+        <!-- ===================================================
+             ENCOUNTER CARD PLACEHOLDER
+             Will show Magic-the-Gathering-style cards for
+             enemies, treasure, traps, and items found on the
+             map. Card art/text generated at a later stage.
+             =================================================== -->
+        <p class="panel-heading">ENCOUNTERS</p>
+        <div class="encounter-cards">
+          <div class="encounter-card">
+            <div class="card-type-badge">???</div>
+            <div class="card-art"><span class="placeholder-icon">❔</span></div>
+            <p class="card-name">Unknown Encounter</p>
+            <div class="card-text-lines">
+              <span></span><span></span><span></span>
+            </div>
+          </div>
+        </div>
+
+        <p class="panel-heading">SYSTEM LOG</p>
+        <div class="system-log" id="system-log"></div>
+      </aside>
+
+      <!-- ---------- bottom: ability hotbar ---------- -->
+      <div class="hud-panel hud-hotbar">
+        <div class="hotbar-slot" id="hotbar-open-door" role="button" tabindex="0" title="Open Door — Force open a door in an adjacent tile. Shortcut: O"><img src="assets/icons/action-open-door.png" alt="Open Door" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Open Door</span><span class="hotbar-key">O</span></div>
+        <div class="hotbar-slot" id="hotbar-fight" role="button" tabindex="0" title="Fight — Battle the mob on Carl's tile. Shortcut: F"><img src="assets/icons/action-fight.png" alt="Fight" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Fight</span><span class="hotbar-key">F</span></div>
+        <div class="hotbar-slot" id="hotbar-use" role="button" tabindex="0" title="Use — Activate the selected inventory item. Shortcut: U"><img src="assets/icons/action-use.png" alt="Use" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Use</span><span class="hotbar-key">U</span></div>
+        <div class="hotbar-slot empty"><span class="hotbar-key">4</span></div>
+        <div class="hotbar-slot empty"><span class="hotbar-key">5</span></div>
+        <div class="hotbar-slot empty"><span class="hotbar-key">6</span></div>
+        <div class="hotbar-slot empty"><span class="hotbar-key">7</span></div>
+        <div class="hotbar-slot empty"><span class="hotbar-key">8</span></div>
+      </div>
+      <div class="hud-panel hud-footer" id="hud-footer">
+        <span class="footer-save-icon">💾</span>
+        <span class="footer-save-text" id="footer-save-text">No active save &mdash; progress isn't saved yet</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       DEATH SCREEN - shown when Carl's HP hits 0. One way out:
+       Main Menu (your last save on disk is untouched).
+       =========================================================== -->
+  <div class="screen death-screen">
+    <div class="dungeon-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="torch torch-left"><div class="flame"></div><div class="sconce"></div></div>
+      <div class="torch torch-right"><div class="flame"></div><div class="sconce"></div></div>
+
+      <div class="content">
+        <p class="show-kicker">&#9670; CONTESTANT ELIMINATED &#9670;</p>
+
+        <!-- ===================================================
+             DEATH GRAPHIC  (same 4:3 size as the backstory
+             panels, ~1200x900).  assets/images/game-over.png
+             =================================================== -->
+        <div class="death-graphic">
+          <img src="assets/images/game-over.png" alt="Carl's demise"
+               class="death-graphic-img"
+               onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+          <div class="placeholder-fallback">
+            <span class="placeholder-icon">&#9760;</span>
+            <span class="placeholder-label">DEATH GRAPHIC GOES HERE</span>
+            <span class="placeholder-sub">drop file at assets/images/game-over.png</span>
+          </div>
+        </div>
+
+        <h2 class="death-heading">YOU DIED</h2>
+        <p class="death-blurb" id="death-blurb"></p>
+
+        <button id="death-menu-btn" class="dungeon-button" type="button">
+          <span class="btn-bracket">&#9654;</span>
+          <span class="btn-text">MAIN MENU</span>
+          <span class="btn-bracket">&#9664;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       POPUP MENU - overlay shown on top of the game screen
+       =========================================================== -->
+  <div class="menu-overlay" id="menu-overlay">
+    <div class="dungeon-frame menu-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <button id="menu-close-btn" class="menu-close" type="button" title="Resume">✕</button>
+
+      <div class="content">
+        <p class="show-kicker">◆ THE DUNGEON PAUSES FOR NO ONE ◆</p>
+        <h2 class="menu-heading">MENU</h2>
+
+        <div class="menu-buttons">
+          <button id="new-game-btn" class="dungeon-button menu-btn-item" type="button">
+            <span class="btn-text">NEW GAME</span>
+          </button>
+          <button id="save-game-btn" class="dungeon-button menu-btn-item" type="button">
+            <span class="btn-text">SAVE GAME</span>
+          </button>
+          <button id="load-game-btn" class="dungeon-button menu-btn-item" type="button" title="Ctrl+L">
+            <span class="btn-text">LOAD GAME</span>
+          </button>
+          <button id="guide-btn" class="dungeon-button menu-btn-item" type="button" title="Ctrl+G">
+            <span class="btn-text">GUIDE BOOK</span>
+          </button>
+        </div>
+
+        <p id="menu-status" class="menu-status"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       SAVE / LOAD GAME - shared overlay, 10 slots backed by real
+       JSON files under /data (see server.js). Slot rows are
+       rendered dynamically by js/main.js.
+       =========================================================== -->
+  <div class="saveload-overlay" id="saveload-overlay">
+    <div class="dungeon-frame saveload-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <button id="saveload-close-btn" class="menu-close" type="button" title="Close">✕</button>
+
+      <div class="content saveload-content">
+        <p class="show-kicker">◆ CHOOSE YOUR FATE ◆</p>
+        <h2 class="menu-heading" id="saveload-heading">SAVE GAME</h2>
+
+        <div class="save-slot-list" id="save-slot-list"></div>
+
+        <p id="saveload-status" class="menu-status"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       GUIDE BOOK - Mordecai's explainer popup: game mechanics
+       and a bestiary that fills in as monsters are discovered.
+       =========================================================== -->
+  <div class="guide-overlay" id="guide-overlay">
+    <div class="dungeon-frame guide-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <button id="guide-close-btn" class="menu-close" type="button" title="Close">✕</button>
+
+      <div class="content guide-content">
+        <p class="show-kicker">◆ YOUR GUIDE TO THE DUNGEON ◆</p>
+
+        <div class="guide-header">
+          <!-- ===================================================
+               MORDECAI PORTRAIT
+               assets/images/mordecai-portrait.png
+               =================================================== -->
+          <div class="portrait" id="mordecai-portrait">
+            <img src="assets/images/mordecai-portrait.png" alt="Mordecai" class="portrait-img"
+                 onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+            <div class="portrait-fallback"><span class="placeholder-icon">🎩</span></div>
+          </div>
+          <div class="guide-header-info">
+            <p class="unit-name">MORDECAI</p>
+            <p class="unit-title">Your System-Appointed Guide</p>
+          </div>
+        </div>
+
+        <p class="guide-quote">"Ah, there you are. I'm Mordecai &mdash; think of me as your agent, your lifeline, and unfortunately, the only friendly voice you'll hear down here. Let's go over the basics, shall we?"</p>
+
+        <div class="guide-main">
+          <nav class="guide-nav" id="guide-nav">
+            <button type="button" class="guide-nav-btn active" data-tab="gameplay">Gameplay</button>
+            <button type="button" class="guide-nav-btn" data-tab="actions">Actions</button>
+            <button type="button" class="guide-nav-btn" data-tab="characters">Characters</button>
+            <button type="button" class="guide-nav-btn" data-tab="stats">Stats</button>
+            <button type="button" class="guide-nav-btn" data-tab="inventory">Inventory</button>
+            <button type="button" class="guide-nav-btn" data-tab="mobs">Mobs</button>
+            <button type="button" class="guide-nav-btn" data-tab="items">Items</button>
+          </nav>
+
+          <div class="guide-panels">
+            <section class="guide-panel active" data-panel="gameplay">
+              <p class="panel-heading">HOW IT WORKS</p>
+              <ul class="guide-list">
+                <li>Move with the <strong>arrow keys</strong> or <strong>WASD</strong>. Walls stop you; a shut door stops you until you force it.</li>
+                <li>Action bar: <strong>O</strong> opens an adjacent door, <strong>F</strong> fights the mob on Carl's tile, <strong>U</strong> uses the selected inventory item.</li>
+                <li>The map only shows what Carl has seen &mdash; a one-tile circle of light, no torch yet. Everything past it stays black until you walk it; places you've left go dim.</li>
+                <li>Mobs appear as red squares once spotted (the boss square is ringed in gold). A red <strong>&#10005;</strong> marks one you've killed.</li>
+                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, and shopkeepers not yet open for business. Walk to the <strong>Exit</strong> tile and press <strong>U</strong> to head back out.</li>
+                <li>The card on the right is whatever Carl is standing on &mdash; a mob, a doorway, the stairs, the Safe Room, empty floor &mdash; or an inventory item you've selected.</li>
+                <li>Kill a mob and you get its <strong>XP</strong> plus a <strong>Loot Box</strong> in your inventory.</li>
+                <li>Fill the <strong>XP</strong> bar to <strong>level up</strong>: HP &amp; SP fully restore, Carl gains <strong>3 stat points</strong> (banked below GOLD, spent in the Safe Room later), a gold payout, and a free Loot Box. His portrait and title climb with him.</li>
+                <li>HP / SP / XP bars are on the left. HP hits zero and the crawl is over &mdash; back to the title, with your last save untouched.</li>
+              </ul>
+            </section>
+
+            <section class="guide-panel" data-panel="actions">
+              <p class="panel-heading">ACTIONS</p>
+              <div class="guide-entry-list">
+                <div class="guide-entry">
+                  <span class="guide-entry-icon guide-icon-box">
+                    <img src="assets/icons/action-open-door.png" alt="" class="guide-icon-img"
+                         onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                    <span class="guide-icon-fallback">🚪</span>
+                  </span>
+                  <div>
+                    <p class="guide-entry-name">Open Door <span class="guide-entry-key">O</span></p>
+                    <p class="guide-entry-desc">Force open a closed door in a tile next to Carl. Doors block movement until opened, then stay open. Press O, or use the Open Door slot on the action bar. Standing on a Safe Room tile, O opens the Safe Room instead.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <span class="guide-entry-icon guide-icon-box">
+                    <img src="assets/icons/action-fight.png" alt="" class="guide-icon-img"
+                         onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                    <span class="guide-icon-fallback">⚔️</span>
+                  </span>
+                  <div>
+                    <p class="guide-entry-name">Fight <span class="guide-entry-key">F</span></p>
+                    <p class="guide-entry-desc">Engage the mob sharing Carl's tile. The fight takes over the map panel &mdash; there's no running once it starts. Each turn costs your action: <strong>Fight</strong> (F) swing for 1d6 + &#8531;&nbsp;STR &minus; armour; <strong>Defend</strong> (D) brace for the next blow (+5 Dodge, damage halved), catch your breath (+25% Max SP), and &mdash; if the mob whiffs into your guard &mdash; line up a <strong>riposte</strong> that makes your next Fight hit for +50%; or use an inventory item (select it on the left, press U). Every roll and result prints to the System Log; the mob's card stays in the Encounters panel. Win for XP and a Loot Box; lose and the crawl is over. Off a mob, it does nothing.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <span class="guide-entry-icon guide-icon-box">
+                    <img src="assets/icons/action-use.png" alt="" class="guide-icon-img"
+                         onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                    <span class="guide-icon-fallback">✋</span>
+                  </span>
+                  <div>
+                    <p class="guide-entry-name">Use <span class="guide-entry-key">U</span></p>
+                    <p class="guide-entry-desc">Activate the selected inventory item. Click an item in the inventory to select it, then press U (or the Use slot on the action bar). Every item does something different when used &mdash; a potion heals, a key unlocks, a loot box opens. With nothing selected, Use just reminds you to pick something first.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <span class="guide-entry-icon guide-icon-box">
+                    <img src="assets/icons/safe-room.png" alt="" class="guide-icon-img"
+                         onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                    <span class="guide-icon-fallback">🏠</span>
+                  </span>
+                  <div>
+                    <p class="guide-entry-name">Safe Room <span class="guide-entry-key">O</span></p>
+                    <p class="guide-entry-desc">One per floor, a teal tile on the map. Press O on it to step inside &mdash; a small map of its own, fully lit, nothing trying to kill you. Rooms off the central hall: <strong>Carl's bunk</strong> (press U to sleep &mdash; full HP &amp; SP for a gold fee that scales with the floor), <strong>Carl's footlocker</strong> (U to stash items so a full bag never loses a Loot Box), <strong>Mordecai</strong> (U opens the Guide Book), and the <strong>Shop</strong>, <strong>Spell Master</strong> and <strong>Guild Master</strong> &mdash; staffed, but not open for business yet. Press U on any tile to interact; walk to the <strong>Exit</strong> and press U to return to the dungeon where you came in.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="guide-panel" data-panel="characters">
+              <p class="panel-heading">CHARACTERS</p>
+              <div class="guide-entry-list">
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/carl-portrait.png" alt="Carl" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">🧗</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Carl</p>
+                    <p class="guide-entry-desc">The crawler you're building. A former grunt caught topside when the System swallowed the planet, now clawing his way down floor by floor &mdash; barefoot, underslept, and stubborn enough to keep going.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/donut-portrait.png" alt="Princess Donut" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">👑</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Princess Donut</p>
+                    <p class="guide-entry-desc">Carl's cat and combat partner. A pampered, award-winning Persian with a sharp tongue and sharper claws, she pulls more than her weight in a fight and never lets Carl forget it.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/mordecai-portrait.png" alt="Mordecai" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">🎩</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Mordecai</p>
+                    <p class="guide-entry-desc">Your System-appointed guide. He handles your listings, feeds you advice through the Guide Book, and is the only friendly voice down here &mdash; though "friendly" comes with plenty of dry commentary.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section class="guide-panel" data-panel="inventory">
+              <p class="panel-heading">INVENTORY</p>
+              <ul class="guide-list">
+                <li>Eight slots, down the left side. More open up as Carl levels (later).</li>
+                <li>Click a slot to <strong>select</strong> it &mdash; the item's card shows in the Encounters panel. Click it again to deselect.</li>
+                <li>Press <strong>U</strong> (or the Use action) on a selected item to use it. Every item does something different &mdash; potions heal, keys unlock, loot boxes open. Most aren't wired up yet.</li>
+                <li>Items work <strong>during a fight</strong> too &mdash; select one and press U &mdash; but using it spends Carl's turn, and the mob still gets its swing.</li>
+                <li>Every kill drops a <strong>Loot Box</strong> straight into the bag. If all eight slots are full it's <strong>lost for good</strong>, so don't let them pile up.</li>
+              </ul>
+            </section>
+
+            <section class="guide-panel" data-panel="stats">
+              <p class="panel-heading">ATTRIBUTES</p>
+              <ul class="guide-list">
+                <li><strong>STR (Strength)</strong> &mdash; melee damage: a hit does <strong>1d6 + &#8531;&nbsp;STR</strong>. Will govern carry weight later.</li>
+                <li><strong>DEX (Dexterity)</strong> &mdash; accuracy (<strong>+DEX</strong> to hit), how hard Carl is to hit (Dodge = <strong>10 + &#189;&nbsp;DEX</strong>), and Max SP (<strong>20 + 4&times;DEX</strong>).</li>
+                <li><strong>CON (Constitution)</strong> &mdash; Max HP (<strong>50 + 5&times;CON</strong>). The death clock &mdash; nothing else matters if this runs out.</li>
+                <li><strong>LUCK</strong> &mdash; bonus XP on every kill (<strong>+LUCK%</strong>) and a wider crit range at 15+. Rare-loot odds later. Does <em>not</em> affect level-up rewards.</li>
+              </ul>
+              <p class="guide-placeholder-text">Combat is d20 + attribute vs. the target's Dodge, then damage dice minus armour. Every crawl starts with 40 points to split across the four &mdash; no respec once you're through the archway.</p>
+              <p class="guide-placeholder-text"><strong>Leveling:</strong> XP to reach a level is 50&nbsp;&times;&nbsp;level&nbsp;&times;&nbsp;(level&minus;1) &mdash; 100 for L2, 300 for L3, 600 for L4, and so on. Each level-up fully restores HP &amp; SP, grants <strong>3 stat points</strong> (shown below GOLD; you'll spend them in the Safe Room), pays <strong>50&nbsp;&times;&nbsp;new level</strong> gold, and drops one Loot Box.</p>
+              <p class="guide-placeholder-text">SP is shown but does nothing yet &mdash; it fuels spells, which arrive on Floor 2.</p>
+            </section>
+
+            <section class="guide-panel" data-panel="mobs">
+              <p class="panel-heading">MOBS</p>
+              <div class="guide-entry-list" id="bestiary-list">
+                <!-- populated by js/main.js — empty until monsters are discovered -->
+              </div>
+            </section>
+
+            <section class="guide-panel" data-panel="items">
+              <p class="panel-heading">ITEMS</p>
+              <div class="guide-entry-list" id="items-list">
+                <!-- populated by js/main.js — empty until items are discovered -->
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       CHARACTER SETUP - stat allocation shown before a new crawl
+       begins. Not dismissible; Carl must be built before the
+       dungeon opens its doors. Distributes 40 points across
+       STR / DEX / CON / LUCK, which in turn determine Carl's
+       starting Max HP, Max SP, and bonus XP rate.
+       =========================================================== -->
+  <div class="statalloc-overlay" id="statalloc-overlay">
+    <div class="dungeon-frame statalloc-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="content statalloc-content">
+        <p class="show-kicker">◆ FORGE YOUR CRAWLER ◆</p>
+        <h2 class="menu-heading">CHARACTER SETUP</h2>
+        <p class="statalloc-intro">Before the archway opens, the System requires Carl's attributes calibrated. Distribute all 40 points, Crawler &mdash; there's no undoing this once you're inside.</p>
+
+        <div class="statalloc-points" id="statalloc-points">POINTS REMAINING: <span id="statalloc-remaining">0</span> / 40</div>
+
+        <div class="statalloc-list">
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">STR</span>
+              <span class="statalloc-stat-full">Strength</span>
+              <span class="statalloc-stat-value" id="statalloc-str-value">10</span>
+            </div>
+            <input type="range" class="statalloc-slider" id="statalloc-str" min="5" max="20" step="1" value="10">
+            <p class="statalloc-stat-desc">Raw physical power. Boosts melee damage and how much you can carry.</p>
+          </div>
+
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">DEX</span>
+              <span class="statalloc-stat-full">Dexterity</span>
+              <span class="statalloc-stat-value" id="statalloc-dex-value">10</span>
+            </div>
+            <input type="range" class="statalloc-slider" id="statalloc-dex" min="5" max="20" step="1" value="10">
+            <p class="statalloc-stat-desc">Speed and reflexes. Raises your Max SP &mdash; the stamina behind every dodge and swing.</p>
+          </div>
+
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">CON</span>
+              <span class="statalloc-stat-full">Constitution</span>
+              <span class="statalloc-stat-value" id="statalloc-con-value">10</span>
+            </div>
+            <input type="range" class="statalloc-slider" id="statalloc-con" min="5" max="20" step="1" value="10">
+            <p class="statalloc-stat-desc">Grit and toughness. Raises your Max HP, so you can take more hits before the dungeon takes you.</p>
+          </div>
+
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">LUCK</span>
+              <span class="statalloc-stat-full">Luck</span>
+              <span class="statalloc-stat-value" id="statalloc-luck-value">10</span>
+            </div>
+            <input type="range" class="statalloc-slider" id="statalloc-luck" min="5" max="20" step="1" value="10">
+            <p class="statalloc-stat-desc">The System's favor. Boosts bonus XP earned from encounters and your odds at rare loot.</p>
+          </div>
+        </div>
+
+        <div class="statalloc-preview">
+          <div class="statalloc-preview-item"><span>MAX HP</span><span id="statalloc-preview-hp">100</span></div>
+          <div class="statalloc-preview-item"><span>MAX SP</span><span id="statalloc-preview-sp">60</span></div>
+          <div class="statalloc-preview-item"><span>XP BONUS</span><span id="statalloc-preview-xp">+10%</span></div>
+        </div>
+
+        <button id="statalloc-confirm-btn" class="dungeon-button statalloc-confirm" type="button" disabled>
+          <span class="btn-bracket">▶</span>
+          <span class="btn-text">BEGIN YOUR CRAWL</span>
+          <span class="btn-bracket">◀</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       STASH MODAL - Carl's footlocker in the Safe Room. Two grids:
+       his 8-slot bag (left) and the 16-slot footlocker (right).
+       Click an item to move it across. Driven by js/main.js.
+       =========================================================== -->
+  <div class="stash-overlay" id="stash-overlay">
+    <div class="dungeon-frame stash-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="content stash-content">
+        <p class="show-kicker">&#9670; CARL'S FOOTLOCKER &#9670;</p>
+        <h2 class="menu-heading">STASH</h2>
+        <p class="stash-hint">Click an item to move it between your bag and the footlocker. Anything you leave here is safe &mdash; and out of the way when loot drops.</p>
+
+        <div class="stash-grids">
+          <div class="stash-col">
+            <p class="panel-heading">BAG</p>
+            <div class="stash-grid" id="stash-bag-grid"></div>
+          </div>
+          <div class="stash-col">
+            <p class="panel-heading">FOOTLOCKER</p>
+            <div class="stash-grid stash-grid-box" id="stash-box-grid"></div>
+          </div>
+        </div>
+
+        <button id="stash-close-btn" class="dungeon-button" type="button">
+          <span class="btn-bracket">&#9654;</span>
+          <span class="btn-text">CLOSE</span>
+          <span class="btn-bracket">&#9664;</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+</body>
+</html>

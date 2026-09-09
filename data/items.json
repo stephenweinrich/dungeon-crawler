@@ -1,0 +1,44 @@
+{
+  "_comment": "Master item list — everything Carl can pick up or be handed. Carl's actual inventory lives in the save slot, not here. 'type': consumable = gone after one Use; permanent = reusable, may toggle; container = opened later. 'value' is the Safe Room shop SELL price (not wired yet).",
+  "items": [
+    {
+      "id": "loot-box",
+      "name": "Loot Box",
+      "type": "container",
+      "icon": "📦",
+      "image": "assets/cards/loot-box.png",
+      "iconImage": "assets/icons/item-loot-box.png",
+      "value": 30,
+      "openable": true,
+      "scalesWithFloor": true,
+      "description": "The System's idea of a participation trophy: a dented, faintly humming cube of alien polymer that drops out of anything worth killing. It refuses to open on command — only when the odds are dramatic and the sponsors are watching. Whatever's inside is scaled to the floor you crack it on: bandages and bent knives down here, worse things later. The System takes its cut of the good stuff first, obviously.",
+      "tooltip": "Loot Box — Use (U) to open it: always some gold (LUCK helps), and a chance at one random item. Consumed on opening."
+    },
+    {
+      "id": "torch",
+      "name": "Torch",
+      "type": "permanent",
+      "toggle": true,
+      "icon": "🔥",
+      "image": "assets/cards/item-torch.png",
+      "iconImage": "assets/icons/item-torch.png",
+      "value": 40,
+      "effect": { "visionRadius": 2 },
+      "description": "A fistful of oil-soaked rag on a stick — the crawler's oldest friend. Light it and the dark gives up a little ground: two tiles of sight instead of one. Snuff it to save it. It doesn't burn down, because the System decided realistic torch physics were bad television.",
+      "tooltipOff": "Torch — UNLIT. No effect; sight radius is 1 tile. Use (U) to light it (radius becomes 2). Reusable.",
+      "tooltipOn": "Torch — LIT. Sight radius is 2 tiles. Use (U) to snuff it out (back to 1)."
+    },
+    {
+      "id": "small-health-potion",
+      "name": "Small Health Potion",
+      "type": "consumable",
+      "icon": "🧪",
+      "image": "assets/cards/item-small-health-potion.png",
+      "iconImage": "assets/icons/item-small-health-potion.png",
+      "value": 15,
+      "effect": { "healPct": 25 },
+      "description": "A thumb-sized vial of something red and faintly carbonated. Tastes like pennies and cough syrup; closes wounds like they were a clerical error. Restores a quarter of Carl's max HP. The System would like to remind you that the Large size is available for purchase.",
+      "tooltip": "Small Health Potion — Use (U) to restore 25% of Max HP. Consumed on use — one and done."
+    }
+  ]
+}
