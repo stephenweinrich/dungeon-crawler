@@ -568,6 +568,9 @@ function renderChatLog(entries) {
     p.textContent = entry.text || '';
     chatLogEl.appendChild(p);
   });
+  // jump to the newest line, like the System Log — deferred a frame since
+  // on load this runs before the game screen has a scrollable height
+  requestAnimationFrame(() => { chatLogEl.scrollTop = chatLogEl.scrollHeight; });
 }
 
 function readChatLog() {
