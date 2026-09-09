@@ -39,6 +39,18 @@
       "effect": { "healPct": 25 },
       "description": "A thumb-sized vial of something red and faintly carbonated. Tastes like pennies and cough syrup; closes wounds like they were a clerical error. Restores a quarter of Carl's max HP. The System would like to remind you that the Large size is available for purchase.",
       "tooltip": "Small Health Potion — Use (U) to restore 25% of Max HP. Consumed on use — one and done."
+    },
+    {
+      "id": "dynamite",
+      "name": "Dynamite",
+      "type": "consumable",
+      "icon": "🧨",
+      "image": "assets/cards/item-dynamite.png",
+      "iconImage": "assets/icons/item-dynamite.png",
+      "value": 25,
+      "effect": { "dmgDice": [2, 10], "dmgFlat": 10, "ignoresArmour": true },
+      "description": "A fat red stick of something the System insists is 'legally distinct from dynamite,' with a fuse that burns exactly as long as the drama requires. Lob it in a fight for a flat 2d10 + 10 that armour does nothing about. The crawlspace goblins hoard the stuff; nobody's sure where they get it, and nobody's asking.",
+      "tooltip": "Dynamite — Use (U) in a fight to blast the mob for 2d10 + 10, ignoring armour. Costs your turn; the mob still swings back. One and done."
     }
   ]
 }

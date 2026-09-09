@@ -47,8 +47,9 @@
         "attack": 10,
         "defense": 3,
         "xp": 50,
+        "drops": [{ "id": "dynamite", "min": 1, "max": 2 }],
         "basedOn": "tone: goblins appear in the series, but this crawlspace-squatter framing is invented for Floor 1",
-        "description": "A knee-high entrepreneur who has annexed three feet of ductwork as sovereign territory and defends it with a sharpened spork. Drops decent loot, most of it lifted off crawlers who also underestimated the spork."
+        "description": "A knee-high entrepreneur who has annexed three feet of ductwork as sovereign territory and defends it with a sharpened spork. Drops decent loot, most of it lifted off crawlers who also underestimated the spork — and a stick or two of dynamite from the stash he'd rather you didn't find."
       },
       {
         "id": "reanimated-tenant",

@@ -2567,6 +2567,7 @@ function endFight(outcome) {
     combatResultEl.hidden = false;
     appendSystemLog(`Carl kills the ${battle.mob.name}. +${gained} XP.`);
     awardLootBox();
+    awardMobDrops(battle.mobDef);
 
     // XP last, so any level-up (full HP/SP, stat points, gold, Loot Box)
     // lands after the kill's own Loot Box and on top of Carl's final HP
@@ -2623,6 +2624,27 @@ function awardLootBox() {
   } else {
     combatLog('  Loot box left behind — the bag is full.', 'l-miss');
     appendSystemLog('Inventory full — the loot box is lost for good.', 'danger');
+  }
+}
+
+// mob-specific loot from mobs.json "drops": [{ id, min, max, chance? }]
+function awardMobDrops(def) {
+  const drops = (def && def.drops) || [];
+  for (const d of drops) {
+    const item = itemCatalog && itemCatalog[d.id];
+    if (!item) continue;
+    if (d.chance != null && Math.random() > d.chance) continue;
+    const lo = d.min || 1;
+    const hi = Math.max(lo, d.max || lo);
+    const want = lo + Math.floor(Math.random() * (hi - lo + 1));
+    let got = 0;
+    for (let i = 0; i < want; i += 1) { if (addToInventory(item)) got += 1; }
+    if (got > 0) {
+      combatLog(`  + ${got}× ${item.name}  →  inventory`, 'l-hit');
+      appendSystemLog(`The ${def.name} was sitting on ${got}× ${item.name}. Straight into the bag.`, 'loot');
+    } else {
+      appendSystemLog(`The ${def.name} drops ${item.name} — but the bag's full.`, 'danger');
+    }
   }
 }
 
@@ -2764,6 +2786,28 @@ const ITEM_USE_HANDLERS = {
     appendSystemLog(nowOn
       ? 'Carl lights the torch. The dark gives up a tile.'
       : 'Carl snuffs the torch. The walls close back in.');
+  },
+
+  // Dynamite — a thrown burst. Combat only: flat dmgDice + dmgFlat to the
+  // mob, ignoring armour. Costs the turn (handled by carlUseItemInBattle).
+  // Outside a fight it does nothing and isn't consumed.
+  dynamite(def, slot) {
+    if (!battle || battle.over || battle.phase === 'over') {
+      appendSystemLog('Carl weighs the dynamite. Nothing in this hallway is worth the eyebrows.');
+      return; // not consumed
+    }
+    const e = def.effect || {};
+    const [n, sides] = e.dmgDice || [2, 10];
+    const roll = rollDice(n, sides);
+    const dmg = Math.max(1, roll.total + (e.dmgFlat || 0));
+    const before = battle.mob.hp;
+    battle.mob.hp -= dmg;
+    combatLog(`  BOOM  ${n}d${sides}[${roll.rolls.join(',')}] +${e.dmgFlat || 0} = ${dmg}${e.ignoresArmour ? '  (ignores armour)' : ''}`, 'l-dmg');
+    combatLog(`  ${battle.mob.name}: ${Math.max(0, before)} → ${Math.max(0, battle.mob.hp)} HP`);
+    playImpact('mob', dmg, dmg >= 20 ? 'crit' : 'hit');
+    renderBattle();
+    removeInvSlot(slot); // consumable
+    if (battle.mob.hp <= 0) endFight('win');
   },
 
   // Small Health Potion — heal a % of Max HP, then it's gone. Used at
