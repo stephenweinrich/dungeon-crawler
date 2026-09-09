@@ -2796,8 +2796,6 @@ let safeRoomMapCache = null;
 let stashItems = []; // footlocker contents, persisted in the save
 let safeRoomGreeted = new Set(); // NPC tiles that have spoken on step-on this visit
 
-const safeRoomHintEl = document.getElementById('saferoom-hint');
-
 const SAFE_TILE_CLASS = {
   '#': 't-wall', '.': 't-floor', '+': 't-door t-door-open',
   E: 't-entrance', X: 't-sr-exit',
@@ -2805,16 +2803,17 @@ const SAFE_TILE_CLASS = {
   4: 't-sr-npc t-sr-donut', 5: 't-sr-npc t-sr-mordecai',
   6: 't-sr-rest', 7: 't-sr-stash', 9: 't-sr-npc t-sr-keeper',
 };
+// which tiles get a marker glyph on the map; label is a hover tooltip only
 const SAFE_FEATURES = {
-  1: { label: "Shop — Bautista's counter" },
-  2: { label: 'Spell Master — Mistress Tiatha' },
-  3: { label: 'Guild Master — Hekla' },
-  4: { label: "Princess Donut's Green Room" },
-  5: { label: 'Mordecai — press U for the Guide Book' },
-  6: { label: "Carl's bunk — press U to rest" },
-  7: { label: "Carl's footlocker — press U for the stash" },
-  9: { label: 'Chris the Bopca, keeper of this room' },
-  X: { label: 'Exit — press O to head back into the dungeon' },
+  1: { label: 'Shop' },
+  2: { label: 'Spell Master' },
+  3: { label: 'Guild Master' },
+  4: { label: 'Princess Donut' },
+  5: { label: 'Mordecai' },
+  6: { label: "Carl's Bunk" },
+  7: { label: "Carl's Footlocker" },
+  9: { label: 'Chris the Bopca' },
+  X: { label: 'Exit' },
 };
 const SAFE_ROOM_LEGEND = [
   { cls: 't-carl', label: 'Carl' },
@@ -2885,7 +2884,6 @@ async function exitSafeRoom() {
   const ret = safeRoomReturn;
   inSafeRoom = false;
   safeRoomReturn = null;
-  if (safeRoomHintEl) safeRoomHintEl.hidden = true;
   currentLevelMap = null; // force ensureLevelMap to re-render the dungeon
   appendSystemLog('Carl heads back out into the dungeon.');
   await ensureLevelMap(ret.level, ret.restore);
@@ -2943,16 +2941,7 @@ function renderSafeRoom(map) {
   mapViewport.innerHTML = '';
   mapViewport.appendChild(grid);
   placeCarl();
-  updateSafeRoomHint();
   updateEncounter();
-}
-
-function updateSafeRoomHint() {
-  if (!safeRoomHintEl) return;
-  const ch = mapTileAt(carlPos.x, carlPos.y);
-  const feat = SAFE_FEATURES[ch];
-  safeRoomHintEl.hidden = !feat;
-  if (feat) safeRoomHintEl.textContent = `▸ ${feat.label}`;
 }
 
 function trySafeRoomMove(dx, dy) {
@@ -2962,7 +2951,6 @@ function trySafeRoomMove(dx, dy) {
   if (!isWalkable(nx, ny)) return;
   carlPos = { x: nx, y: ny };
   placeCarl();
-  updateSafeRoomHint();
   updateEncounter();
   // NPCs greet Carl the first time he steps onto their tile each visit
   const ch = mapTileAt(nx, ny);
