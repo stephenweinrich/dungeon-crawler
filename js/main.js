@@ -417,6 +417,8 @@ function applyCarlStats(stats, derived) {
   resetLeveling();
 
   // brand new crawler — nothing collected or logged yet
+  const goldEl = document.getElementById('gold-value');
+  if (goldEl) goldEl.textContent = '0';
   closeBattle(); // in case a fight was somehow still up
   inSafeRoom = false; safeRoomReturn = null; stashItems = [];
   closeStash();
