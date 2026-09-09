@@ -2988,6 +2988,14 @@ const SAFE_NPC_LINES = {
       "No credit, no browsing, no shop. Not yet, anyway.",
     ],
   },
+  5: {
+    chat: 'mordecai',
+    lines: [
+      "You again. Press U and I'll walk you through whatever you've forgotten.",
+      "Guide Book's open whenever you are — press U. Try to retain it this time.",
+      "Everything you need to survive is one button away. It's U. It's always U.",
+    ],
+  },
   2: {
     chat: 'tiatha',
     lines: [

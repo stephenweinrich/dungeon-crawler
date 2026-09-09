@@ -1017,6 +1017,8 @@ body {
 .chat-hekla::before { content: "Hekla: "; font-weight: 700; opacity: 0.7; }
 .chat-chris { color: #7fc98a; }
 .chat-chris::before { content: "Chris: "; font-weight: 700; opacity: 0.7; }
+.chat-mordecai { color: #6fc3c9; }
+.chat-mordecai::before { content: "Mordecai: "; font-weight: 700; opacity: 0.7; }
 
 /* ---------- inventory ---------- */
 .inventory-grid {
