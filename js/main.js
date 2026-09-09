@@ -2827,7 +2827,6 @@ const SAFE_ROOM_LEGEND = [
   { cls: 't-sr-rest', label: 'Bunk' },
   { cls: 't-sr-stash', label: 'Footlocker' },
   { cls: 't-sr-keeper', label: 'Keeper' },
-  { cls: 't-wall', label: 'Wall' },
 ];
 // Encounters-panel card for the safe-room tile Carl is standing on
 const SAFE_ENCOUNTERS = {
