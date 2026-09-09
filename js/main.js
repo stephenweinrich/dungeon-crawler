@@ -1690,6 +1690,8 @@ function renderDungeonMap(map, restore) {
   carlPos = restored && restored.carl
     ? { x: restored.carl.x, y: restored.carl.y }
     : { x: map.start.x, y: map.start.y };
+  // a save from an older floor layout could land Carl in a wall — snap home
+  if (!isWalkable(carlPos.x, carlPos.y)) carlPos = { x: map.start.x, y: map.start.y };
   bossRoomEntered = restored ? Boolean(restored.bossRoomEntered) : false;
   exploredCells = new Set(restored && Array.isArray(restored.explored) ? restored.explored : []);
 
@@ -1847,6 +1849,14 @@ function tryMoveCarl(dx, dy) {
   const ch = mapTileAt(nx, ny);
   if (isDoorTile(ch) && !openedDoors.has(`${nx},${ny}`)) {
     appendSystemLog('The door is shut. Press O to open it.');
+    return;
+  }
+  // a live mob is a wall: walk into it and the fight starts — no slipping past
+  const blockingMob = mobDefAt(nx, ny);
+  if (blockingMob) {
+    const vowel = /^[aeiou]/i.test(blockingMob.name || '');
+    appendSystemLog(`${vowel ? 'An' : 'A'} ${blockingMob.name} blocks the way. Nothing for it but to fight.`, 'danger');
+    openBattle(blockingMob, nx, ny);
     return;
   }
   if (!isWalkable(nx, ny)) { roamBark('blocked'); return; }
@@ -2316,14 +2326,16 @@ function setCombatButtons(...keys) {
 // portraits facing off, the d20 tumbling between them. The mob's full
 // card still sits in the ENCOUNTERS panel; the precise dice math still
 // scrolls in the SYSTEM LOG; Princess Donut heckles from CHAT.
-function openBattle(mobDef) {
+// mx,my — the mob's own tile (defaults to Carl's, for fights where he
+// stands on it). Carl may be adjacent when a mob blocks a 1-wide corridor.
+function openBattle(mobDef, mx, my) {
   if (!mapCombatEl || !carlPos) return;
   deselectInvItem();  // let the mob's card sit in the ENCOUNTERS panel
   updateEncounter();  // (Carl shares its tile) until Carl picks an item
   battle = {
     mobDef,
-    cx: carlPos.x,
-    cy: carlPos.y,
+    cx: (typeof mx === 'number') ? mx : carlPos.x,
+    cy: (typeof my === 'number') ? my : carlPos.y,
     carl: carlSheet(),
     mob: mobSheet(mobDef),
     phase: 'carl',
@@ -2574,12 +2586,22 @@ function endFight(outcome) {
 
 function battleContinue() {
   const wasLoss = combatResultEl.classList.contains('lose');
+  const clearedX = battle ? battle.cx : null;
+  const clearedY = battle ? battle.cy : null;
   closeBattle();
   if (wasLoss) {
     showDeathScreen(); // game over — the save on disk is untouched
-  } else {
-    updateEncounter(); // Carl now stands on a dead-mob tile
+    return;
   }
+  // the mob was a wall; with it dead, step forward onto the tile it held
+  if (clearedX != null && carlPos && !inSafeRoom
+    && !(carlPos.x === clearedX && carlPos.y === clearedY)
+    && isWalkable(clearedX, clearedY) && !mobDefAt(clearedX, clearedY)) {
+    carlPos = { x: clearedX, y: clearedY };
+    placeCarl();
+    applyFog();
+  }
+  updateEncounter();
 }
 
 // every kill drops a Loot Box straight into the bag (opening comes
@@ -2610,17 +2632,25 @@ function markMobKilled(x, y) {
   }
 }
 
-// Fight action (F key / hotbar slot): only meaningful while Carl shares
-// a tile with a live mob.
+// Fight action (F key / hotbar slot): the live mob on Carl's tile, or —
+// since mobs block 1-wide corridors — one standing right next to him.
 function activateFightAction() {
   if (battle) return; // a fight is already open
   if (!currentLevelMap || !carlPos) return;
-  const mob = mobDefAt(carlPos.x, carlPos.y);
+  let mob = mobDefAt(carlPos.x, carlPos.y);
+  let mx = carlPos.x;
+  let my = carlPos.y;
+  if (!mob) {
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      const m = mobDefAt(carlPos.x + dx, carlPos.y + dy);
+      if (m) { mob = m; mx = carlPos.x + dx; my = carlPos.y + dy; break; }
+    }
+  }
   if (!mob) {
     appendSystemLog('Nothing here to fight.');
     return;
   }
-  openBattle(mob);
+  openBattle(mob, mx, my);
 }
 
 if (combatButtonsEl) {
