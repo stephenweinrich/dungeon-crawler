@@ -1504,7 +1504,7 @@ function encounterForCarl() {
 
 function updateEncounter() {
   if (selectedInvSlot) return; // a selected inventory item is pinned in the panel
-  renderEncounter(encounterForCarl());
+  renderEncounter(inSafeRoom ? safeRoomEncounterForCarl() : encounterForCarl());
 }
 
 const TILE_CLASS = {
@@ -2822,6 +2822,26 @@ const SAFE_ROOM_LEGEND = [
   { cls: 't-sr-keeper', label: 'Keeper' },
   { cls: 't-wall', label: 'Wall' },
 ];
+// Encounters-panel card for the safe-room tile Carl is standing on
+const SAFE_ENCOUNTERS = {
+  '.': { name: 'Safe-Room Passage', badge: 'sanctuary', image: 'assets/cards/empty-passage-saferoom.png', icon: '·' },
+  '+': { name: 'Open Doorway', badge: 'threshold', image: 'assets/cards/open-doorway-safe-room.png', icon: '🚪' },
+  E: { name: 'Safe-Room Entrance', badge: 'sanctuary', image: 'assets/cards/safe-room-entrance.png', icon: '🚪' },
+  X: { name: 'The Way Back Down', badge: 'threshold', image: 'assets/cards/safe-room-exit.png', icon: '🚪' },
+  1: { name: 'Bautista', badge: 'shopkeeper', image: 'assets/cards/shop-keeper.png', icon: '🛒' },
+  2: { name: 'Mistress Tiatha', badge: 'spell master', image: 'assets/cards/spell-master.png', icon: '✨' },
+  3: { name: 'Hekla', badge: 'guild master', image: 'assets/cards/guild-master.png', icon: '⚔' },
+  4: { name: 'Princess Donut', badge: "crawler's cat", image: 'assets/cards/princess-donut.png', icon: '👑' },
+  5: { name: 'Mordecai', badge: 'system guide', image: 'assets/cards/system-guide.png', icon: '📖' },
+  6: { name: "Carl's Bunk", badge: 'comfort', image: 'assets/cards/bunk.png', icon: '🛏' },
+  7: { name: "Carl's Footlocker", badge: 'storage', image: 'assets/cards/footlocker.png', icon: '🧰' },
+  9: { name: 'Chris the Bopca', badge: 'keeper', image: 'assets/cards/bopca-keeper.png', icon: '🗝' },
+};
+function safeRoomEncounterForCarl() {
+  if (!carlPos) return null;
+  const ch = mapTileAt(carlPos.x, carlPos.y);
+  return SAFE_ENCOUNTERS[ch] || SAFE_ENCOUNTERS['.'];
+}
 
 async function loadSafeRoomMap() {
   if (safeRoomMapCache) return safeRoomMapCache;
@@ -2846,6 +2866,7 @@ async function enterSafeRoom() {
     donutFavorUsed: false,
   };
   inSafeRoom = true;
+  deselectInvItem(); // let the room's cards show in the ENCOUNTERS panel
   renderSafeRoom(map);
   appendSystemLog('Carl steps into the safe room. The dungeon shuts its teeth behind him.');
 }
@@ -2914,7 +2935,7 @@ function renderSafeRoom(map) {
   mapViewport.appendChild(grid);
   placeCarl();
   updateSafeRoomHint();
-  renderEncounter(null);
+  updateEncounter();
 }
 
 function updateSafeRoomHint() {
@@ -2933,6 +2954,7 @@ function trySafeRoomMove(dx, dy) {
   carlPos = { x: nx, y: ny };
   placeCarl();
   updateSafeRoomHint();
+  updateEncounter();
 }
 
 // U while standing on a feature tile. Returns true if it handled the
