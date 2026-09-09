@@ -493,12 +493,12 @@
               <ul class="guide-list">
                 <li>Move with the <strong>arrow keys</strong> or <strong>WASD</strong>. Walls stop you; a shut door stops you until you force it.</li>
                 <li>Action bar: <strong>O</strong> opens an adjacent door, <strong>F</strong> fights the mob on Carl's tile, <strong>U</strong> uses the selected inventory item.</li>
-                <li>The map only shows what Carl has seen &mdash; a one-tile circle of light, no torch yet. Everything past it stays black until you walk it; places you've left go dim.</li>
+                <li>The map only shows what Carl has seen &mdash; a one-tile circle of light around him (a lit <strong>Torch</strong> widens it to two). Everything past it stays black until you walk it; places you've left go dim.</li>
                 <li>Mobs appear as red squares once spotted (the boss square is ringed in gold). A red <strong>&#10005;</strong> marks one you've killed.</li>
-                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, and shopkeepers not yet open for business. Walk to the <strong>Exit</strong> tile and press <strong>U</strong> to head back out.</li>
-                <li>The card on the right is whatever Carl is standing on &mdash; a mob, a doorway, the stairs, the Safe Room, empty floor &mdash; or an inventory item you've selected.</li>
+                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, and a Shop / Spell Master / Guild Master not yet open for business. Walk to the <strong>Exit</strong> door and press <strong>O</strong> to head back out.</li>
+                <li>The card on the right is whatever Carl is standing on &mdash; a mob, a doorway, the stairs, a Safe Room tile, empty floor &mdash; or an inventory item you've selected.</li>
                 <li>Kill a mob and you get its <strong>XP</strong> plus a <strong>Loot Box</strong> in your inventory.</li>
-                <li>Fill the <strong>XP</strong> bar to <strong>level up</strong>: HP &amp; SP fully restore, Carl gains <strong>3 stat points</strong> (banked below GOLD, spent in the Safe Room later), a gold payout, and a free Loot Box. His portrait and title climb with him.</li>
+                <li>Fill the <strong>XP</strong> bar to <strong>level up</strong>: HP &amp; SP fully restore, Carl gains <strong>3 stat points</strong> (banked below GOLD, spent with the Safe Room's Guild Master later), a gold payout, and a free Loot Box. His portrait and title climb with him.</li>
                 <li>HP / SP / XP bars are on the left. HP hits zero and the crawl is over &mdash; back to the title, with your last save untouched.</li>
               </ul>
             </section>
@@ -525,7 +525,7 @@
                   </span>
                   <div>
                     <p class="guide-entry-name">Fight <span class="guide-entry-key">F</span></p>
-                    <p class="guide-entry-desc">Engage the mob sharing Carl's tile. The fight takes over the map panel &mdash; there's no running once it starts. Each turn costs your action: <strong>Fight</strong> (F) swing for 1d6 + &#8531;&nbsp;STR &minus; armour; <strong>Defend</strong> (D) brace for the next blow (+5 Dodge, damage halved), catch your breath (+25% Max SP), and &mdash; if the mob whiffs into your guard &mdash; line up a <strong>riposte</strong> that makes your next Fight hit for +50%; or use an inventory item (select it on the left, press U). Every roll and result prints to the System Log; the mob's card stays in the Encounters panel. Win for XP and a Loot Box; lose and the crawl is over. Off a mob, it does nothing.</p>
+                    <p class="guide-entry-desc">Engage the mob sharing Carl's tile. The fight takes over the map panel as an <strong>arena</strong>: Carl and the mob face off, a turn banner and round count sit up top, a d20 tumbles between them and stamps the verdict (HIT / MISS / CRIT / FUMBLE), HP bars chip down, and Princess Donut heckles from Chat. There's no running once it starts. Each turn costs your action: <strong>Fight</strong> (F) &mdash; swing for 1d6 + &#8531;&nbsp;STR &minus; armour; <strong>Defend</strong> (D) &mdash; brace for the next blow (+5 Dodge, damage halved), bank <strong>+25% Max SP</strong>, and if the mob whiffs into your guard, line up a <strong>riposte</strong> (+50% on your next Fight); or use an inventory item (select it on the left, press U). The precise dice math still scrolls in the System Log; the <strong>FAST</strong> toggle at the top-right of the arena speeds the animation up. Win for XP and a Loot Box; lose and the crawl is over. Off a mob, F does nothing.</p>
                   </div>
                 </div>
                 <div class="guide-entry">
@@ -536,7 +536,7 @@
                   </span>
                   <div>
                     <p class="guide-entry-name">Use <span class="guide-entry-key">U</span></p>
-                    <p class="guide-entry-desc">Activate the selected inventory item. Click an item in the inventory to select it, then press U (or the Use slot on the action bar). Every item does something different when used &mdash; a potion heals, a key unlocks, a loot box opens. With nothing selected, Use just reminds you to pick something first.</p>
+                    <p class="guide-entry-desc">Activate the selected inventory item. Click an item in the inventory to select it, then press U (or the Use slot on the action bar). Every item does something different &mdash; a potion heals, a torch lights, a loot box opens. In a fight, U spends the turn like any other action. Standing on a Safe Room feature (bunk, footlocker, Mordecai), U works that instead. With nothing selected and nothing to interact with, Use just reminds you to pick something first.</p>
                   </div>
                 </div>
                 <div class="guide-entry">
@@ -575,7 +575,7 @@
                   </div>
                   <div>
                     <p class="guide-entry-name">Princess Donut</p>
-                    <p class="guide-entry-desc">Carl's cat and combat partner. A pampered, award-winning Persian with a sharp tongue and sharper claws, she pulls more than her weight in a fight and never lets Carl forget it.</p>
+                    <p class="guide-entry-desc">Carl's cat and combat partner. A pampered, award-winning Persian with a sharp tongue and sharper claws, she pulls more than her weight in a fight &mdash; and keeps up a running commentary from the sidelines, in Chat.</p>
                   </div>
                 </div>
                 <div class="guide-entry">
@@ -586,7 +586,51 @@
                   </div>
                   <div>
                     <p class="guide-entry-name">Mordecai</p>
-                    <p class="guide-entry-desc">Your System-appointed guide. He handles your listings, feeds you advice through the Guide Book, and is the only friendly voice down here &mdash; though "friendly" comes with plenty of dry commentary.</p>
+                    <p class="guide-entry-desc">Your System-appointed guide. He handles your listings, feeds you advice through the Guide Book, and is the only friendly voice down here &mdash; though "friendly" comes with plenty of dry commentary. Find him in the Safe Room.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/bautista-portrait.png" alt="Bautista" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">🛒</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Bautista</p>
+                    <p class="guide-entry-desc">Runs the Safe Room shop: a knee-high slab of ex-pro-wrestler behind a counter of supplies, with a permanent scowl. The shop isn't stocked yet &mdash; but he'll tell you so, at length.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/tiatha-portrait.png" alt="Mistress Tiatha" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">✨</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Mistress Tiatha</p>
+                    <p class="guide-entry-desc">The Safe Room's Spell Master &mdash; an ageless, impatient elf who deals in magic she doesn't think you're ready for. The spell trade isn't open yet; check back deeper down.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/hekla-portrait.png" alt="Hekla" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">🪓</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Hekla</p>
+                    <p class="guide-entry-desc">The Safe Room's Guild Master: a scarred mountain of a warrior who turns stat points into muscle. Training isn't running yet, so your points sit banked below GOLD for now.</p>
+                  </div>
+                </div>
+                <div class="guide-entry">
+                  <div class="portrait guide-entry-portrait">
+                    <img src="assets/images/chris-portrait.png" alt="Chris the Bopca" class="portrait-img"
+                         onerror="this.parentElement.classList.add('img-missing');">
+                    <div class="portrait-fallback">🗝️</div>
+                  </div>
+                  <div>
+                    <p class="guide-entry-name">Chris the Bopca</p>
+                    <p class="guide-entry-desc">The Bopca who keeps this Safe Room &mdash; small, officious, armed with something far too big for him, and militant about not letting the dungeon follow you in.</p>
                   </div>
                 </div>
               </div>
@@ -599,7 +643,7 @@
                 <li>Click a slot to <strong>select</strong> it &mdash; the item's card shows in the Encounters panel. Click it again to deselect.</li>
                 <li>Press <strong>U</strong> (or the Use action) on a selected item to use it. Every item does something different &mdash; potions heal, keys unlock, loot boxes open. Most aren't wired up yet.</li>
                 <li>Items work <strong>during a fight</strong> too &mdash; select one and press U &mdash; but using it spends Carl's turn, and the mob still gets its swing.</li>
-                <li>Every kill drops a <strong>Loot Box</strong> straight into the bag. If all eight slots are full it's <strong>lost for good</strong>, so don't let them pile up.</li>
+                <li>Every kill drops a <strong>Loot Box</strong> straight into the bag. If all eight slots are full it's <strong>lost for good</strong>, so don't let them pile up &mdash; park spares in the Safe Room <strong>footlocker</strong>.</li>
               </ul>
             </section>
 
@@ -612,8 +656,8 @@
                 <li><strong>LUCK</strong> &mdash; bonus XP on every kill (<strong>+LUCK%</strong>) and a wider crit range at 15+. Rare-loot odds later. Does <em>not</em> affect level-up rewards.</li>
               </ul>
               <p class="guide-placeholder-text">Combat is d20 + attribute vs. the target's Dodge, then damage dice minus armour. Every crawl starts with 40 points to split across the four &mdash; no respec once you're through the archway.</p>
-              <p class="guide-placeholder-text"><strong>Leveling:</strong> XP to reach a level is 50&nbsp;&times;&nbsp;level&nbsp;&times;&nbsp;(level&minus;1) &mdash; 100 for L2, 300 for L3, 600 for L4, and so on. Each level-up fully restores HP &amp; SP, grants <strong>3 stat points</strong> (shown below GOLD; you'll spend them in the Safe Room), pays <strong>50&nbsp;&times;&nbsp;new level</strong> gold, and drops one Loot Box.</p>
-              <p class="guide-placeholder-text">SP is shown but does nothing yet &mdash; it fuels spells, which arrive on Floor 2.</p>
+              <p class="guide-placeholder-text"><strong>Leveling:</strong> XP to reach a level is 50&nbsp;&times;&nbsp;level&nbsp;&times;&nbsp;(level&minus;1) &mdash; 100 for L2, 300 for L3, 600 for L4, and so on. Each level-up fully restores HP &amp; SP, grants <strong>3 stat points</strong> (shown below GOLD; you'll spend them with the Safe Room's Guild Master), pays <strong>50&nbsp;&times;&nbsp;new level</strong> gold, and drops one Loot Box.</p>
+              <p class="guide-placeholder-text"><strong>SP</strong> fills the bar under HP. A <strong>Defend</strong> in combat banks +25% of Max SP ("catch your breath"), and a rest at the Safe Room bunk refills it; the spells that spend it arrive on Floor 2.</p>
             </section>
 
             <section class="guide-panel" data-panel="mobs">
