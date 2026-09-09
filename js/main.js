@@ -1399,7 +1399,11 @@ document.addEventListener('keydown', (event) => {
 // The O action: on a Safe Room tile it opens the Safe Room; otherwise
 // it forces open a door in an adjacent tile. (Same for the hotbar slot.)
 function activateOpenDoorAction() {
-  if (inSafeRoom) { appendSystemLog('The doors in here are already open.'); return; }
+  if (inSafeRoom) {
+    if (mapTileAt(carlPos.x, carlPos.y) === 'X') { exitSafeRoom(); return; }
+    appendSystemLog('The doors in here are already open.');
+    return;
+  }
   if (currentLevelMap && carlPos && mapTileAt(carlPos.x, carlPos.y) === 'S') {
     enterSafeRoom();
     return;
@@ -2806,7 +2810,7 @@ const SAFE_FEATURES = {
   6: { label: "Carl's bunk — press U to rest" },
   7: { label: "Carl's footlocker — press U for the stash" },
   9: { label: 'Chris the Bopca, keeper of this room' },
-  X: { label: 'Exit — press U to head back into the dungeon' },
+  X: { label: 'Exit — press O to head back into the dungeon' },
 };
 const SAFE_ROOM_LEGEND = [
   { cls: 't-carl', label: 'Carl' },
@@ -2999,7 +3003,7 @@ const SAFE_NPC_LINES = {
 function safeRoomUse() {
   const ch = mapTileAt(carlPos.x, carlPos.y);
   switch (ch) {
-    case 'X': exitSafeRoom(); return true;
+    case 'X': appendSystemLog('The way out is a door — press O.'); return true;
     case '5': openGuide(); return true;
     case '6': restAtBunk(); return true;
     case '7': openStash(); return true;
