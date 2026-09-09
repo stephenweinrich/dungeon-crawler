@@ -2791,6 +2791,7 @@ let inSafeRoom = false;
 let safeRoomReturn = null; // { level, restore, dungeonMap, donutFavorUsed } — how to rebuild the dungeon on exit
 let safeRoomMapCache = null;
 let stashItems = []; // footlocker contents, persisted in the save
+let safeRoomGreeted = new Set(); // NPC tiles that have spoken on step-on this visit
 
 const safeRoomHintEl = document.getElementById('saferoom-hint');
 
@@ -2870,6 +2871,7 @@ async function enterSafeRoom() {
     donutFavorUsed: false,
   };
   inSafeRoom = true;
+  safeRoomGreeted = new Set();
   deselectInvItem(); // let the room's cards show in the ENCOUNTERS panel
   renderSafeRoom(map);
   appendSystemLog('Carl steps into the safe room. The dungeon shuts its teeth behind him.');
@@ -2959,6 +2961,20 @@ function trySafeRoomMove(dx, dy) {
   placeCarl();
   updateSafeRoomHint();
   updateEncounter();
+  // NPCs greet Carl the first time he steps onto their tile each visit
+  const ch = mapTileAt(nx, ny);
+  if ((ch === '4' || SAFE_NPC_LINES[ch]) && !safeRoomGreeted.has(ch)) {
+    safeRoomGreeted.add(ch);
+    safeRoomNpcSpeak(ch);
+  }
+}
+
+// an NPC speaks a line into the CHAT panel (see also safeRoomUse for U).
+function safeRoomNpcSpeak(ch) {
+  if (ch === '4') { donutGreenRoom(); return; }
+  const npc = SAFE_NPC_LINES[ch];
+  if (!npc) return;
+  appendChatLine(npc.lines[Math.floor(Math.random() * npc.lines.length)], npc.chat);
 }
 
 // spoken lines for the not-yet-open NPCs — these go to the CHAT panel,
@@ -3000,6 +3016,8 @@ const SAFE_NPC_LINES = {
 
 // U while standing on a feature tile. Returns true if it handled the
 // press (so activateUseAction knows not to also fire a normal item Use).
+// NPCs greet Carl automatically when he steps onto their tile (see
+// trySafeRoomMove); pressing U on them just makes them talk again.
 function safeRoomUse() {
   const ch = mapTileAt(carlPos.x, carlPos.y);
   switch (ch) {
@@ -3007,12 +3025,9 @@ function safeRoomUse() {
     case '5': openGuide(); return true;
     case '6': restAtBunk(); return true;
     case '7': openStash(); return true;
-    case '4': donutGreenRoom(); return true;
-    case '1': case '2': case '3': case '9': {
-      const npc = SAFE_NPC_LINES[ch];
-      appendChatLine(npc.lines[Math.floor(Math.random() * npc.lines.length)], npc.chat);
+    case '1': case '2': case '3': case '4': case '9':
+      safeRoomNpcSpeak(ch);
       return true;
-    }
     default:
       return false;
   }
