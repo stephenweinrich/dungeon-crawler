@@ -2802,7 +2802,7 @@ const ITEM_USE_HANDLERS = {
     const dmg = Math.max(1, roll.total + (e.dmgFlat || 0));
     const before = battle.mob.hp;
     battle.mob.hp -= dmg;
-    combatLog(`  BOOM  ${n}d${sides}[${roll.rolls.join(',')}] +${e.dmgFlat || 0} = ${dmg}${e.ignoresArmour ? '  (ignores armour)' : ''}`, 'l-dmg');
+    combatLog(`  BOOM  ${n}d${sides}[${roll.rolls.join(',')}]${e.dmgFlat ? ` +${e.dmgFlat}` : ''} = ${dmg}${e.ignoresArmour ? '  (ignores armour)' : ''}`, 'l-dmg');
     combatLog(`  ${battle.mob.name}: ${Math.max(0, before)} → ${Math.max(0, battle.mob.hp)} HP`);
     playImpact('mob', dmg, dmg >= 20 ? 'crit' : 'hit');
     renderBattle();

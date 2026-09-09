@@ -48,9 +48,9 @@
       "image": "assets/cards/item-dynamite.png",
       "iconImage": "assets/icons/item-dynamite.png",
       "value": 25,
-      "effect": { "dmgDice": [2, 10], "dmgFlat": 10, "ignoresArmour": true },
-      "description": "A fat red stick of something the System insists is 'legally distinct from dynamite,' with a fuse that burns exactly as long as the drama requires. Lob it in a fight for a flat 2d10 + 10 that armour does nothing about. The crawlspace goblins hoard the stuff; nobody's sure where they get it, and nobody's asking.",
-      "tooltip": "Dynamite — Use (U) in a fight to blast the mob for 2d10 + 10, ignoring armour. Costs your turn; the mob still swings back. One and done."
+      "effect": { "dmgDice": [2, 10], "ignoresArmour": true },
+      "description": "A fat red stick of something the System insists is 'legally distinct from dynamite,' with a fuse that burns exactly as long as the drama requires. Lob it in a fight for a flat 2d10 — up to 20 — that armour does nothing about. The crawlspace goblins hoard the stuff; nobody's sure where they get it, and nobody's asking.",
+      "tooltip": "Dynamite — Use (U) in a fight to blast the mob for 2d10 (up to 20), ignoring armour. Costs your turn; the mob still swings back. One and done."
     }
   ]
 }
