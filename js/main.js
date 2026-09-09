@@ -2957,6 +2957,43 @@ function trySafeRoomMove(dx, dy) {
   updateEncounter();
 }
 
+// spoken lines for the not-yet-open NPCs — these go to the CHAT panel,
+// each in the NPC's own colour (see .chat-<name> in style.css)
+const SAFE_NPC_LINES = {
+  1: {
+    chat: 'bautista',
+    lines: [
+      "Shop's not stocked yet, pal. Come back down the line.",
+      'I sell things. Currently: nothing. Enthralling, I know.',
+      "No credit, no browsing, no shop. Not yet, anyway.",
+    ],
+  },
+  2: {
+    chat: 'tiatha',
+    lines: [
+      'The spell trade is not open. Do not make me repeat myself.',
+      'You are not ready for what I would sell you. Neither is my inventory.',
+      "Come back when the words on these pages won't kill you.",
+    ],
+  },
+  3: {
+    chat: 'hekla',
+    lines: [
+      'Nothing to train yet. Come back when I can make you hurt properly.',
+      'Bring me your stat points and your soft little bones. Later.',
+      "You want stronger? So do I. The System hasn't signed the paperwork.",
+    ],
+  },
+  9: {
+    chat: 'chris',
+    lines: [
+      "Rest, restock, whatever. Just don't track dungeon in on my floor.",
+      "This is a safe room. Keep it that way and we'll get along.",
+      "Bunk's there, locker's there, stairs down are there. Don't dawdle.",
+    ],
+  },
+};
+
 // U while standing on a feature tile. Returns true if it handled the
 // press (so activateUseAction knows not to also fire a normal item Use).
 function safeRoomUse() {
@@ -2967,18 +3004,11 @@ function safeRoomUse() {
     case '6': restAtBunk(); return true;
     case '7': openStash(); return true;
     case '4': donutGreenRoom(); return true;
-    case '1':
-      appendSystemLog('Bautista looks up from the counter. "Shop\'s not stocked yet, pal. Come back down the line."');
+    case '1': case '2': case '3': case '9': {
+      const npc = SAFE_NPC_LINES[ch];
+      appendChatLine(npc.lines[Math.floor(Math.random() * npc.lines.length)], npc.chat);
       return true;
-    case '2':
-      appendSystemLog('Mistress Tiatha does not look up. The spell trade is not open yet.');
-      return true;
-    case '3':
-      appendSystemLog('Hekla thumps a training dummy. "No point yet. Come back when I can actually make you hurt."');
-      return true;
-    case '9':
-      appendSystemLog('Chris the Bopca: "Rest, restock, whatever. Just don\'t track dungeon in on my floor."');
-      return true;
+    }
     default:
       return false;
   }

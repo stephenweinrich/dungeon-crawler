@@ -1008,6 +1008,15 @@ body {
 .chat-donut { color: #d99fd9; }
 .chat-donut::before { content: "Princess Donut: "; font-weight: 700; opacity: 0.7; }
 .chat-carl { color: var(--parchment); }
+/* safe-room NPCs — each speaks in their own colour */
+.chat-bautista { color: #e0a15a; }
+.chat-bautista::before { content: "Bautista: "; font-weight: 700; opacity: 0.7; }
+.chat-tiatha { color: #a893e6; }
+.chat-tiatha::before { content: "Mistress Tiatha: "; font-weight: 700; opacity: 0.7; }
+.chat-hekla { color: #e0855f; }
+.chat-hekla::before { content: "Hekla: "; font-weight: 700; opacity: 0.7; }
+.chat-chris { color: #7fc98a; }
+.chat-chris::before { content: "Chris: "; font-weight: 700; opacity: 0.7; }
 
 /* ---------- inventory ---------- */
 .inventory-grid {
