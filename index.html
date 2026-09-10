@@ -495,10 +495,10 @@
                 <li>Action bar: <strong>O</strong> opens an adjacent door, <strong>F</strong> fights the mob on Carl's tile, <strong>U</strong> uses the selected inventory item.</li>
                 <li>The map only shows what Carl has seen &mdash; a one-tile circle of light around him (a lit <strong>Torch</strong> widens it to two). Everything past it stays black until you walk it; places you've left go dim.</li>
                 <li>Mobs appear as red squares once spotted (the boss square is ringed in gold). A red <strong>&#10005;</strong> marks one you've killed. A live mob is a <strong>wall</strong> &mdash; in these tunnels you can't slip past it. Walk into it to fight; win and the way clears.</li>
-                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, and a Shop / Spell Master / Guild Master not yet open for business. Walk to the <strong>Exit</strong> door and press <strong>O</strong> to head back out.</li>
+                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, the Guild Master (spend your banked stat points), and a Shop / Spell Master not yet open for business. Walk to the <strong>Exit</strong> door and press <strong>O</strong> to head back out.</li>
                 <li>The card on the right is whatever Carl is standing on &mdash; a mob, a doorway, the stairs, a Safe Room tile, empty floor &mdash; or an inventory item you've selected.</li>
                 <li>Kill a mob and you get its <strong>XP</strong> plus a <strong>Loot Box</strong> in your inventory.</li>
-                <li>Fill the <strong>XP</strong> bar to <strong>level up</strong>: HP &amp; SP fully restore, Carl gains <strong>3 stat points</strong> (banked below GOLD, spent with the Safe Room's Guild Master later), a gold payout, and a free Loot Box. His portrait and title climb with him.</li>
+                <li>Fill the <strong>XP</strong> bar to <strong>level up</strong>: HP &amp; SP fully restore, Carl gains <strong>3 stat points</strong> (banked below GOLD until you spend them with the Safe Room's Guild Master), a gold payout, and a free Loot Box. His portrait and title climb with him.</li>
                 <li>HP / SP / XP bars are on the left. HP hits zero and the crawl is over &mdash; back to the title, with your last save untouched.</li>
               </ul>
             </section>
@@ -619,7 +619,7 @@
                   </div>
                   <div>
                     <p class="guide-entry-name">Hekla</p>
-                    <p class="guide-entry-desc">The Safe Room's Guild Master: a scarred mountain of a warrior who turns stat points into muscle. Training isn't running yet, so your points sit banked below GOLD for now.</p>
+                    <p class="guide-entry-desc">The Safe Room's Guild Master: a scarred mountain of a warrior who turns stat points into muscle. Stand on her tile and press <strong>U</strong> to train &mdash; spend your banked points to raise STR, DEX, CON or LUCK by 1 apiece. Stage the changes, then Confirm; there's no cap and no refund.</p>
                   </div>
                 </div>
                 <div class="guide-entry">
@@ -658,7 +658,7 @@
                 <li><strong>LUCK</strong> &mdash; bonus XP on every kill (<strong>+LUCK%</strong>) and a wider crit range at 15+. Rare-loot odds later. Does <em>not</em> affect level-up rewards.</li>
               </ul>
               <p class="guide-placeholder-text">Combat is d20 + attribute vs. the target's Dodge, then damage dice minus armour &mdash; though a stick of <strong>Dynamite</strong> skips the armour step entirely. Every crawl starts with 40 points to split across the four &mdash; no respec once you're through the archway.</p>
-              <p class="guide-placeholder-text"><strong>Leveling:</strong> XP to reach a level is 50&nbsp;&times;&nbsp;level&nbsp;&times;&nbsp;(level&minus;1) &mdash; 100 for L2, 300 for L3, 600 for L4, and so on. Each level-up fully restores HP &amp; SP, grants <strong>3 stat points</strong> (shown below GOLD; you'll spend them with the Safe Room's Guild Master), pays <strong>50&nbsp;&times;&nbsp;new level</strong> gold, and drops one Loot Box.</p>
+              <p class="guide-placeholder-text"><strong>Leveling:</strong> XP to reach a level is 50&nbsp;&times;&nbsp;level&nbsp;&times;&nbsp;(level&minus;1) &mdash; 100 for L2, 300 for L3, 600 for L4, and so on. Each level-up fully restores HP &amp; SP, grants <strong>3 stat points</strong> (shown below GOLD; spend them at the Safe Room's Guild Master to raise any attribute 1-for-1, uncapped and permanent), pays <strong>50&nbsp;&times;&nbsp;new level</strong> gold, and drops one Loot Box.</p>
               <p class="guide-placeholder-text"><strong>SP</strong> fills the bar under HP. A <strong>Defend</strong> in combat banks +25% of Max SP ("catch your breath"), and a rest at the Safe Room bunk refills it; the spells that spend it arrive on Floor 2.</p>
             </section>
 
@@ -792,6 +792,107 @@
           <span class="btn-text">CLOSE</span>
           <span class="btn-bracket">&#9664;</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       GUILD MASTER - TRAINING. Hekla, in the Safe Room, lets Carl
+       spend the stat points he's banked from leveling. Same four
+       attributes as character setup, but with +/- steppers: stage
+       the changes, Confirm to commit (uncapped, permanent) or
+       Cancel to back out. Raising CON / DEX lifts Max HP / Max SP
+       but does not top up current HP / SP. Driven by js/main.js.
+       =========================================================== -->
+  <div class="statalloc-overlay guildtrain-overlay" id="guildtrain-overlay">
+    <div class="dungeon-frame statalloc-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="content statalloc-content">
+        <p class="show-kicker">&#9670; GUILD MASTER &mdash; HEKLA &#9670;</p>
+        <h2 class="menu-heading">TRAIN</h2>
+
+        <div class="statalloc-points" id="guildtrain-points">POINTS TO SPEND: <span id="guildtrain-remaining">0</span> <span class="guildtrain-points-note">&mdash; no cap, no refund</span></div>
+
+        <div class="statalloc-list">
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">STR</span>
+              <span class="statalloc-stat-full">Strength</span>
+              <span class="statalloc-stat-value" id="guildtrain-str-value">10</span>
+            </div>
+            <div class="guildtrain-stepper">
+              <button type="button" class="guildtrain-step" data-stat="str" data-dir="-1">&minus;</button>
+              <span class="guildtrain-step-delta" id="guildtrain-str-delta">+0</span>
+              <button type="button" class="guildtrain-step" data-stat="str" data-dir="1">+</button>
+            </div>
+            <p class="statalloc-stat-desc">Melee damage and how much you can carry.</p>
+          </div>
+
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">DEX</span>
+              <span class="statalloc-stat-full">Dexterity</span>
+              <span class="statalloc-stat-value" id="guildtrain-dex-value">10</span>
+            </div>
+            <div class="guildtrain-stepper">
+              <button type="button" class="guildtrain-step" data-stat="dex" data-dir="-1">&minus;</button>
+              <span class="guildtrain-step-delta" id="guildtrain-dex-delta">+0</span>
+              <button type="button" class="guildtrain-step" data-stat="dex" data-dir="1">+</button>
+            </div>
+            <p class="statalloc-stat-desc">Max SP, plus your to-hit and dodge in a fight.</p>
+          </div>
+
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">CON</span>
+              <span class="statalloc-stat-full">Constitution</span>
+              <span class="statalloc-stat-value" id="guildtrain-con-value">10</span>
+            </div>
+            <div class="guildtrain-stepper">
+              <button type="button" class="guildtrain-step" data-stat="con" data-dir="-1">&minus;</button>
+              <span class="guildtrain-step-delta" id="guildtrain-con-delta">+0</span>
+              <button type="button" class="guildtrain-step" data-stat="con" data-dir="1">+</button>
+            </div>
+            <p class="statalloc-stat-desc">Max HP. Current HP won't refill &mdash; rest at the bunk for that.</p>
+          </div>
+
+          <div class="statalloc-row">
+            <div class="statalloc-row-head">
+              <span class="statalloc-stat-name">LUCK</span>
+              <span class="statalloc-stat-full">Luck</span>
+              <span class="statalloc-stat-value" id="guildtrain-luck-value">10</span>
+            </div>
+            <div class="guildtrain-stepper">
+              <button type="button" class="guildtrain-step" data-stat="luck" data-dir="-1">&minus;</button>
+              <span class="guildtrain-step-delta" id="guildtrain-luck-delta">+0</span>
+              <button type="button" class="guildtrain-step" data-stat="luck" data-dir="1">+</button>
+            </div>
+            <p class="statalloc-stat-desc">Bonus XP per kill, wider crits at 15+, better loot odds.</p>
+          </div>
+        </div>
+
+        <div class="statalloc-preview">
+          <div class="statalloc-preview-item"><span>MAX HP</span><span id="guildtrain-preview-hp">100</span></div>
+          <div class="statalloc-preview-item"><span>MAX SP</span><span id="guildtrain-preview-sp">60</span></div>
+          <div class="statalloc-preview-item"><span>XP BONUS</span><span id="guildtrain-preview-xp">+10%</span></div>
+        </div>
+
+        <div class="guildtrain-buttons">
+          <button id="guildtrain-cancel-btn" class="dungeon-button" type="button">
+            <span class="btn-bracket">&#9654;</span>
+            <span class="btn-text">CANCEL</span>
+            <span class="btn-bracket">&#9664;</span>
+          </button>
+          <button id="guildtrain-confirm-btn" class="dungeon-button statalloc-confirm" type="button" disabled>
+            <span class="btn-bracket">&#9654;</span>
+            <span class="btn-text">CONFIRM</span>
+            <span class="btn-bracket">&#9664;</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

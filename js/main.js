@@ -3081,9 +3081,9 @@ const SAFE_NPC_LINES = {
   3: {
     chat: 'hekla',
     lines: [
-      'Nothing to train yet. Come back when I can make you hurt properly.',
-      'Bring me your stat points and your soft little bones. Later.',
-      "You want stronger? So do I. The System hasn't signed the paperwork.",
+      "Guild's open for business, Crawler. Stand on my mark and press U — I'll turn those banked points into muscle.",
+      "You've bled, you've levelled. Bring the points here: press U and we'll put them where they'll do some good.",
+      "Training hall's running. Press U on my tile whenever you've got points to spend — no cap on how far you push it.",
     ],
   },
   9: {
@@ -3107,7 +3107,8 @@ function safeRoomUse() {
     case '5': openGuide(); return true;
     case '6': restAtBunk(); return true;
     case '7': openStash(); return true;
-    case '1': case '2': case '3': case '4': case '9':
+    case '3': openGuildTraining(); return true;
+    case '1': case '2': case '4': case '9':
       safeRoomNpcSpeak(ch);
       return true;
     default:
@@ -3134,6 +3135,134 @@ function restAtBunk() {
   setStatBar('hp', hp.max, hp.max);
   setStatBar('sp', sp.max, sp.max);
   appendSystemLog(`The System charges ${cost} gold for the bunk. Carl sleeps like the dead — HP and SP fully restored.`, 'loot');
+}
+
+// --- Guild Master training -------------------------------------
+// Hekla lets Carl spend the stat points he's banked from leveling.
+// +/- steppers stage changes against the pool; Confirm commits them
+// permanently (no cap, no respec), Cancel discards. Raising CON / DEX
+// lifts Max HP / Max SP but does NOT top up current HP / SP — Carl
+// tops those up at the bunk.
+const guildOverlay = document.getElementById('guildtrain-overlay');
+const guildRemainingEl = document.getElementById('guildtrain-remaining');
+const guildPointsBox = document.getElementById('guildtrain-points');
+const guildConfirmBtn = document.getElementById('guildtrain-confirm-btn');
+const guildCancelBtn = document.getElementById('guildtrain-cancel-btn');
+const guildPreviewHp = document.getElementById('guildtrain-preview-hp');
+const guildPreviewSp = document.getElementById('guildtrain-preview-sp');
+const guildPreviewXp = document.getElementById('guildtrain-preview-xp');
+const GUILD_STATS = ['str', 'dex', 'con', 'luck'];
+let guildBase = { str: 10, dex: 10, con: 10, luck: 10 };
+let guildSpend = { str: 0, dex: 0, con: 0, luck: 0 };
+
+function guildSpendTotal() {
+  return GUILD_STATS.reduce((n, k) => n + guildSpend[k], 0);
+}
+
+function renderGuildTraining() {
+  const spent = guildSpendTotal();
+  const remaining = carlStatPoints - spent;
+  if (guildRemainingEl) guildRemainingEl.textContent = String(remaining);
+  if (guildPointsBox) guildPointsBox.classList.toggle('satisfied', spent > 0 && remaining === 0);
+
+  const draft = {};
+  GUILD_STATS.forEach((k) => {
+    draft[k] = guildBase[k] + guildSpend[k];
+    const vEl = document.getElementById(`guildtrain-${k}-value`);
+    if (vEl) vEl.textContent = String(draft[k]);
+    const dEl = document.getElementById(`guildtrain-${k}-delta`);
+    if (dEl) {
+      dEl.textContent = `+${guildSpend[k]}`;
+      dEl.classList.toggle('spent', guildSpend[k] > 0);
+    }
+  });
+
+  if (guildOverlay) {
+    guildOverlay.querySelectorAll('.guildtrain-step').forEach((btn) => {
+      const k = btn.dataset.stat;
+      const dir = Number(btn.dataset.dir);
+      btn.disabled = dir < 0 ? guildSpend[k] <= 0 : remaining <= 0;
+    });
+  }
+
+  const derived = deriveCarlResources(draft);
+  if (guildPreviewHp) guildPreviewHp.textContent = derived.maxHp;
+  if (guildPreviewSp) guildPreviewSp.textContent = derived.maxSp;
+  if (guildPreviewXp) guildPreviewXp.textContent = `+${derived.xpBonus}%`;
+
+  if (guildConfirmBtn) guildConfirmBtn.disabled = spent <= 0;
+}
+
+function openGuildTraining() {
+  if (!guildOverlay) return;
+  if (carlStatPoints <= 0) {
+    appendChatLine('"Nothing banked, nothing to train. Go bleed for it and come back."', 'hekla');
+    return;
+  }
+  guildBase = {
+    str: Number(hudStatValues.str.textContent) || 10,
+    dex: Number(hudStatValues.dex.textContent) || 10,
+    con: Number(hudStatValues.con.textContent) || 10,
+    luck: Number(hudStatValues.luck.textContent) || 10,
+  };
+  guildSpend = { str: 0, dex: 0, con: 0, luck: 0 };
+  renderGuildTraining();
+  guildOverlay.classList.add('active');
+}
+
+function closeGuildTraining() {
+  if (guildOverlay) guildOverlay.classList.remove('active');
+}
+
+function commitGuildTraining() {
+  const spent = guildSpendTotal();
+  if (spent <= 0) return;
+
+  const draft = {};
+  GUILD_STATS.forEach((k) => {
+    draft[k] = guildBase[k] + guildSpend[k];
+    hudStatValues[k].textContent = String(draft[k]);
+  });
+  carlStatPoints = Math.max(0, carlStatPoints - spent);
+  renderStatPoints();
+
+  // recompute the HP / SP ceilings from the new CON / DEX — raise the
+  // max only, leave current where it is (Carl rests at the bunk to fill).
+  const derived = deriveCarlResources(draft);
+  const hp = readStatBar('hp');
+  const sp = readStatBar('sp');
+  setStatBar('hp', Math.min(hp.current, derived.maxHp), derived.maxHp);
+  setStatBar('sp', Math.min(sp.current, derived.maxSp), derived.maxSp);
+
+  const parts = GUILD_STATS
+    .filter((k) => guildSpend[k] > 0)
+    .map((k) => `${k.toUpperCase()} +${guildSpend[k]}`);
+  appendChatLine('"Done. It\'s in the bone now — don\'t come crying to me about it later."', 'hekla');
+  appendSystemLog(
+    `Hekla drills Carl raw. ${parts.join(', ')}. ${spent} stat point${spent === 1 ? '' : 's'} spent.`,
+    'level',
+  );
+  closeGuildTraining();
+}
+
+if (guildOverlay) {
+  guildOverlay.querySelectorAll('.guildtrain-step').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const k = btn.dataset.stat;
+      const dir = Number(btn.dataset.dir);
+      if (dir > 0 && guildSpendTotal() < carlStatPoints) guildSpend[k] += 1;
+      else if (dir < 0 && guildSpend[k] > 0) guildSpend[k] -= 1;
+      renderGuildTraining();
+    });
+  });
+  if (guildConfirmBtn) guildConfirmBtn.addEventListener('click', commitGuildTraining);
+  if (guildCancelBtn) guildCancelBtn.addEventListener('click', closeGuildTraining);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && guildOverlay.classList.contains('active')) {
+      event.preventDefault();
+      closeGuildTraining();
+    }
+  });
 }
 
 function donutGreenRoom() {

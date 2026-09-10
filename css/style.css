@@ -2498,6 +2498,80 @@ body {
   box-shadow: 0 0 0 3px #000;
 }
 
+/* ---------- Guild Master training (reuses .statalloc-* chrome) ---------- */
+.guildtrain-overlay .statalloc-stat-name { width: 44px; }
+
+/* compact layout so the four rows + preview + buttons always fit on
+   screen without the inner list scrolling */
+.guildtrain-overlay { overflow-y: auto; }
+.guildtrain-overlay .statalloc-frame { margin: auto; }
+.guildtrain-overlay .menu-heading { margin-bottom: 8px; }
+.guildtrain-overlay .statalloc-points { margin-bottom: 12px; }
+.guildtrain-overlay .statalloc-list {
+  max-height: none;
+  overflow: visible;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-right: 0;
+}
+.guildtrain-overlay .statalloc-row-head { margin-bottom: 2px; }
+.guildtrain-overlay .statalloc-stat-desc { font-size: 11px; line-height: 1.35; }
+.guildtrain-overlay .statalloc-preview { margin-bottom: 12px; padding: 8px 14px; }
+
+.guildtrain-points-note {
+  font-family: var(--font-medieval);
+  font-size: 12px;
+  color: rgba(232, 217, 181, 0.6);
+  text-shadow: none;
+  letter-spacing: 0;
+}
+
+.guildtrain-stepper {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 3px 0 5px;
+}
+.guildtrain-step {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  font-family: var(--font-pixel);
+  font-size: 13px;
+  line-height: 1;
+  color: var(--gold-bright);
+  background: #0d0b08;
+  border: 2px solid rgba(212, 175, 55, 0.5);
+  border-radius: 3px;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+}
+.guildtrain-step:hover:not(:disabled) {
+  background: #1a1610;
+  border-color: var(--gold-bright);
+}
+.guildtrain-step:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+.guildtrain-step-delta {
+  font-family: var(--font-pixel);
+  font-size: 11px;
+  color: rgba(232, 217, 181, 0.55);
+  min-width: 30px;
+  text-align: center;
+}
+.guildtrain-step-delta.spent { color: #8fe88f; }
+
+.guildtrain-buttons {
+  display: flex;
+  gap: 12px;
+}
+.guildtrain-buttons .dungeon-button {
+  flex: 1;
+  justify-content: center;
+}
+
 /* ---------- responsive tweaks ---------- */
 @media (max-width: 560px) {
   .dungeon-frame { padding: 34px 20px 28px; }
