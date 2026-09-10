@@ -2348,6 +2348,9 @@ body {
   justify-content: center;
   background: rgba(3, 2, 1, 0.8);
   padding: 24px;
+  /* on a short viewport the frame can be taller than the screen —
+     let the overlay scroll instead of clipping the confirm button */
+  overflow-y: auto;
 }
 .statalloc-overlay.active {
   display: flex;
@@ -2356,6 +2359,11 @@ body {
 .statalloc-frame {
   width: min(640px, 94vw);
   animation: none;
+  /* grow to fit the content and never clip it; the overlay scrolls
+     if it can't fit. margin:auto keeps it centred when it does. */
+  max-height: none;
+  overflow: visible;
+  margin: auto;
   /* extra room below the confirm button so it clears the frame's
      bottom corner ornaments */
   padding-bottom: 54px;
@@ -2504,10 +2512,9 @@ body {
 /* ---------- Guild Master training (reuses .statalloc-* chrome) ---------- */
 .guildtrain-overlay .statalloc-stat-name { width: 44px; }
 
-/* compact layout so the four rows + preview + buttons always fit on
-   screen without the inner list scrolling */
-.guildtrain-overlay { overflow-y: auto; }
-.guildtrain-overlay .statalloc-frame { margin: auto; }
+/* compact layout so the four rows + preview + buttons fit without the
+   inner list scrolling (the .statalloc-overlay base already lets the
+   whole frame scroll as a fallback) */
 .guildtrain-overlay .menu-heading { margin-bottom: 8px; }
 .guildtrain-overlay .statalloc-points { margin-bottom: 12px; }
 .guildtrain-overlay .statalloc-list {
