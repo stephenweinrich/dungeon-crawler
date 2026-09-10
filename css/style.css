@@ -2356,6 +2356,9 @@ body {
 .statalloc-frame {
   width: min(640px, 94vw);
   animation: none;
+  /* extra room below the confirm button so it clears the frame's
+     bottom corner ornaments */
+  padding-bottom: 54px;
 }
 
 .statalloc-content {
