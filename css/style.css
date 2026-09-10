@@ -524,8 +524,8 @@ body {
 /* ---------- skip link ---------- */
 .skip-link {
   position: absolute;
-  top: 16px;
-  right: 22px;
+  top: 40px;
+  right: 44px;
   z-index: 6;
   background: none;
   border: none;
@@ -2582,7 +2582,7 @@ body {
   .comic-caption { font-size: 12px; padding: 10px 14px; }
   .slide-nav { gap: 10px; }
   .nav-btn { font-size: 9px; padding: 10px 12px; }
-  .skip-link { top: 10px; right: 12px; }
+  .skip-link { top: 34px; right: 34px; }
 }
 
 /* short viewports: trim the fixed rows so the flexing panel keeps a
