@@ -286,6 +286,49 @@
             <p class="combat-hint"><strong>F</strong> fight &middot; <strong>D</strong> defend (brace, +25% SP, sets up a riposte) &middot; <strong>U</strong> use the selected item &mdash; every action takes your turn.</p>
             <div class="combat-buttons" id="combat-buttons"></div>
           </div>
+
+          <!-- ===================================================
+               SPELL MASTER SHOP - drawn over the map, same as
+               combat, while Tiatha's shop is open. Driven by
+               js/main.js.
+               =================================================== -->
+          <div class="map-shop" id="map-spellshop" aria-live="polite">
+            <div class="shop-hud">
+              <span class="shop-hud-title">SPELL MASTER &mdash; TIATHA</span>
+              <button id="spellshop-close-btn" class="map-panel-close" type="button" title="Close (Esc)">&#10005; CLOSE</button>
+            </div>
+            <p class="spellshop-gold">GOLD: <span id="spellshop-gold">0</span></p>
+            <p class="spellshop-hint">Click BUY to learn a spell &mdash; it drops into your bag as a one-use casting. No refunds, no trade-ins.</p>
+            <div class="spellshop-list" id="spellshop-list"></div>
+          </div>
+
+          <!-- ===================================================
+               SHOP - Bautista's Safe Room store, drawn over the map
+               the same way combat is. BUY tab: everything in
+               items.json that isn't vendor-locked elsewhere (Loot
+               Box is sell-only). SELL tab: Carl's whole bag at each
+               item's value. Listed prices are opening quotes; the
+               real number is a LUCK haggle roll made when Carl
+               commits. Clicking a row previews that item's card in
+               the ENCOUNTERS panel. Driven by js/main.js.
+               =================================================== -->
+          <div class="map-shop" id="map-shop" aria-live="polite">
+            <div class="shop-hud">
+              <span class="shop-hud-title">SHOP &mdash; BAUTISTA</span>
+              <button id="shop-close-btn" class="map-panel-close" type="button" title="Close (Esc)">&#10005; CLOSE</button>
+            </div>
+            <p class="shop-gold">GOLD: <span id="shop-gold">0</span></p>
+
+            <div class="shop-tabs" id="shop-tabs">
+              <button type="button" class="shop-tab active" data-tab="buy">BUY</button>
+              <button type="button" class="shop-tab" data-tab="sell">SELL</button>
+            </div>
+
+            <p class="shop-hint">Listed prices are Bautista's opening quote. The real number is haggled &mdash; a LUCK roll &mdash; the moment Carl commits.</p>
+            <p class="shop-result" id="shop-result" hidden></p>
+
+            <div class="shop-list" id="shop-list"></div>
+          </div>
         </div>
 
         <div class="hud-panel hud-chat">
@@ -324,11 +367,17 @@
         <div class="hotbar-slot" id="hotbar-open-door" role="button" tabindex="0" title="Open Door — Force open a door in an adjacent tile. Shortcut: O"><img src="assets/icons/action-open-door.png" alt="Open Door" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Open Door</span><span class="hotbar-key">O</span></div>
         <div class="hotbar-slot" id="hotbar-fight" role="button" tabindex="0" title="Fight — Battle the mob on Carl's tile. Shortcut: F"><img src="assets/icons/action-fight.png" alt="Fight" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Fight</span><span class="hotbar-key">F</span></div>
         <div class="hotbar-slot" id="hotbar-use" role="button" tabindex="0" title="Use — Activate the selected inventory item. Shortcut: U"><img src="assets/icons/action-use.png" alt="Use" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Use</span><span class="hotbar-key">U</span></div>
-        <div class="hotbar-slot empty"><span class="hotbar-key">4</span></div>
-        <div class="hotbar-slot empty"><span class="hotbar-key">5</span></div>
-        <div class="hotbar-slot empty"><span class="hotbar-key">6</span></div>
-        <div class="hotbar-slot empty"><span class="hotbar-key">7</span></div>
-        <div class="hotbar-slot empty"><span class="hotbar-key">8</span></div>
+        <div class="hotbar-slot" id="hotbar-drop" role="button" tabindex="0" title="Drop — Permanently discard the selected inventory item to free a slot. You can't get it back. Shortcut: X"><img src="assets/icons/action-drop.png" alt="Drop" class="hotbar-img" onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');"><span class="hotbar-label">Drop</span><span class="hotbar-key">X</span></div>
+        <!-- ===================================================
+             ABILITY SLOTS - empty until Carl permanently learns
+             something (currently only Fireball, from reading a
+             Fireball Scroll). Filled in, in order, by
+             renderAbilityHotbar() in js/main.js.
+             =================================================== -->
+        <div class="hotbar-slot empty" id="hotbar-ability-4"><span class="hotbar-key">4</span></div>
+        <div class="hotbar-slot empty" id="hotbar-ability-5"><span class="hotbar-key">5</span></div>
+        <div class="hotbar-slot empty" id="hotbar-ability-6"><span class="hotbar-key">6</span></div>
+        <div class="hotbar-slot empty" id="hotbar-ability-7"><span class="hotbar-key">7</span></div>
       </div>
       <div class="hud-panel hud-footer" id="hud-footer">
         <span class="footer-save-icon">💾</span>
@@ -495,7 +544,7 @@
                 <li>Action bar: <strong>O</strong> opens an adjacent door, <strong>F</strong> fights the mob on Carl's tile, <strong>U</strong> uses the selected inventory item.</li>
                 <li>The map only shows what Carl has seen &mdash; a one-tile circle of light around him (a lit <strong>Torch</strong> widens it to two). Everything past it stays black until you walk it; places you've left go dim.</li>
                 <li>Mobs appear as red squares once spotted (the boss square is ringed in gold). A red <strong>&#10005;</strong> marks one you've killed. A live mob is a <strong>wall</strong> &mdash; in these tunnels you can't slip past it. Walk into it to fight; win and the way clears.</li>
-                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, the Guild Master (spend your banked stat points), and a Shop / Spell Master not yet open for business. Walk to the <strong>Exit</strong> door and press <strong>O</strong> to head back out.</li>
+                <li>Every floor has one <strong>Safe Room</strong> (a teal tile on the map). Stand on it and press <strong>O</strong> to step inside &mdash; its own little map of rooms: a paid bunk that restores HP &amp; SP, Carl's footlocker, Mordecai's Guide Book, the Guild Master (spend your banked stat points), the Spell Master (buy spells), and the Shop (buy gear, sell loot). Walk to the <strong>Exit</strong> door and press <strong>O</strong> to head back out.</li>
                 <li>The card on the right is whatever Carl is standing on &mdash; a mob, a doorway, the stairs, a Safe Room tile, empty floor &mdash; or an inventory item you've selected.</li>
                 <li>Kill a mob and you get its <strong>XP</strong> plus a <strong>Loot Box</strong> in your inventory.</li>
                 <li>Fill the <strong>XP</strong> bar to <strong>level up</strong>: HP &amp; SP fully restore, Carl gains <strong>3 stat points</strong> (banked below GOLD until you spend them with the Safe Room's Guild Master), a gold payout, and a free Loot Box. His portrait and title climb with him.</li>
@@ -547,7 +596,7 @@
                   </span>
                   <div>
                     <p class="guide-entry-name">Safe Room <span class="guide-entry-key">O</span></p>
-                    <p class="guide-entry-desc">One per floor, a teal tile on the map. Press O on it to step inside &mdash; a small map of its own, fully lit, nothing trying to kill you. Rooms off the central hall: <strong>Carl's bunk</strong> (press U to sleep &mdash; full HP &amp; SP for a gold fee that scales with the floor), <strong>Carl's footlocker</strong> (U to stash items so a full bag never loses a Loot Box), <strong>Mordecai</strong> (U opens the Guide Book), and the <strong>Shop</strong>, <strong>Spell Master</strong> and <strong>Guild Master</strong> &mdash; staffed, but not open for business yet. The NPCs pipe up in Chat when Carl walks onto them (press U to hear them again); U also works the bunk, footlocker and Mordecai. Walk to the <strong>Exit</strong> and press O (it's a door) to return to the dungeon where you came in.</p>
+                    <p class="guide-entry-desc">One per floor, a teal tile on the map. Press O on it to step inside &mdash; a small map of its own, fully lit, nothing trying to kill you. Rooms off the central hall: <strong>Carl's bunk</strong> (press U to sleep &mdash; full HP &amp; SP for a gold fee that scales with the floor), <strong>Carl's footlocker</strong> (U to stash items so a full bag never loses a Loot Box), <strong>Mordecai</strong> (U opens the Guide Book), the <strong>Guild Master</strong> (U to spend banked stat points), the <strong>Spell Master</strong> (U to buy spells) and the <strong>Shop</strong> (U to buy gear and sell loot &mdash; prices are haggled on a LUCK roll). The NPCs pipe up in Chat when Carl walks onto them (press U to hear them again); U also works the bunk, footlocker and Mordecai. Walk to the <strong>Exit</strong> and press O (it's a door) to return to the dungeon where you came in.</p>
                   </div>
                 </div>
               </div>
@@ -597,7 +646,7 @@
                   </div>
                   <div>
                     <p class="guide-entry-name">Bautista</p>
-                    <p class="guide-entry-desc">Runs the Safe Room shop: a knee-high slab of ex-pro-wrestler behind a counter of supplies, with a permanent scowl. The shop isn't stocked yet &mdash; but he'll tell you so, at length.</p>
+                    <p class="guide-entry-desc">Runs the Safe Room shop: a knee-high slab of ex-pro-wrestler behind a counter of supplies, with a permanent scowl. Press U on his tile to trade &mdash; BUY tab for gear, SELL tab to dump loot. Every price is a haggle: he quotes a number, then a LUCK roll decides what Carl actually pays or pockets (a crit robs him blind, a fumble gets you fleeced).</p>
                   </div>
                 </div>
                 <div class="guide-entry">
@@ -608,7 +657,7 @@
                   </div>
                   <div>
                     <p class="guide-entry-name">Mistress Tiatha</p>
-                    <p class="guide-entry-desc">The Safe Room's Spell Master &mdash; an ageless, impatient elf who deals in magic she doesn't think you're ready for. The spell trade isn't open yet; check back deeper down.</p>
+                    <p class="guide-entry-desc">The Safe Room's Spell Master &mdash; an ageless, impatient elf who deals in magic she doesn't think you're ready for. Press U on her tile to buy spells; right now that's a one-use <strong>Fireball</strong> casting, with scrolls to follow.</p>
                   </div>
                 </div>
                 <div class="guide-entry">
@@ -645,7 +694,8 @@
                 <li>Items work <strong>during a fight</strong> too &mdash; select one and press U &mdash; but using it spends Carl's turn, and the mob still gets its swing. <strong>Dynamite</strong> is the offensive one: a flat 2d10 (up to 20) that ignores armour &mdash; every <strong>Crawlspace Goblin</strong> drops a stick or two.</li>
                 <li>Every kill drops a <strong>Loot Box</strong> straight into the bag. If all eight slots are full it's <strong>lost for good</strong>, so don't let them pile up.</li>
                 <li><strong>Storage &mdash; the Safe Room footlocker.</strong> Stand on Carl's footlocker (in his room) and press <strong>U</strong> for a 16-slot chest. Click an item to move it between bag and footlocker; anything you leave there is safe, out of the way when loot drops, and kept in your save file.</li>
-                <li>The <strong>Shop</strong> (buy / sell) and <strong>Spell Master</strong> next door will handle the rest of your loadout &mdash; not open for business yet.</li>
+                <li>The <strong>Spell Master</strong> (Tiatha, next door) sells spells &mdash; press <strong>U</strong> on her tile for a one-use <strong>Fireball</strong> casting (3d8+2 fire, 25 SP).</li>
+                <li>The <strong>Shop</strong> (Bautista) buys and sells &mdash; press <strong>U</strong> for BUY / SELL tabs. He buys gear at roughly an item's value, sells it at a markup, and every deal is haggled on a <strong>LUCK</strong> roll: the listed price is only his opening quote.</li>
               </ul>
             </section>
 
@@ -659,7 +709,7 @@
               </ul>
               <p class="guide-placeholder-text">Combat is d20 + attribute vs. the target's Dodge, then damage dice minus armour &mdash; though a stick of <strong>Dynamite</strong> skips the armour step entirely. Every crawl starts with 40 points to split across the four &mdash; no respec once you're through the archway.</p>
               <p class="guide-placeholder-text"><strong>Leveling:</strong> XP to reach a level is 50&nbsp;&times;&nbsp;level&nbsp;&times;&nbsp;(level&minus;1) &mdash; 100 for L2, 300 for L3, 600 for L4, and so on. Each level-up fully restores HP &amp; SP, grants <strong>3 stat points</strong> (shown below GOLD; spend them at the Safe Room's Guild Master to raise any attribute 1-for-1, uncapped and permanent), pays <strong>50&nbsp;&times;&nbsp;new level</strong> gold, and drops one Loot Box.</p>
-              <p class="guide-placeholder-text"><strong>SP</strong> fills the bar under HP. A <strong>Defend</strong> in combat banks +25% of Max SP ("catch your breath"), and a rest at the Safe Room bunk refills it; the spells that spend it arrive on Floor 2.</p>
+              <p class="guide-placeholder-text"><strong>SP</strong> fills the bar under HP. A <strong>Defend</strong> in combat banks +25% of Max SP ("catch your breath"), and a rest at the Safe Room bunk refills it. Spells spend it &mdash; a <strong>Fireball</strong> from the Spell Master costs <strong>25 SP</strong> a cast, and fizzles (scroll and turn wasted) if you're short.</p>
             </section>
 
             <section class="guide-panel" data-panel="mobs">
@@ -792,6 +842,39 @@
           <span class="btn-text">CLOSE</span>
           <span class="btn-bracket">&#9664;</span>
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       DROP CONFIRM - dropping an inventory item is permanent: it's
+       left in the dungeon with no pickup, ever. This modal is the
+       guard on the Drop action / X key. Driven by js/main.js.
+       =========================================================== -->
+  <div class="dropconfirm-overlay" id="dropconfirm-overlay">
+    <div class="dungeon-frame dropconfirm-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="content dropconfirm-content">
+        <p class="show-kicker">&#9670; DROP ITEM &#9670;</p>
+        <h2 class="menu-heading">DROP FOR GOOD?</h2>
+        <p class="dropconfirm-text">Carl leaves <strong id="dropconfirm-name">the item</strong> on the dungeon floor. It stays there &mdash; there is no picking it back up. The bag slot comes free.</p>
+
+        <div class="dropconfirm-buttons">
+          <button id="dropconfirm-cancel-btn" class="dungeon-button" type="button">
+            <span class="btn-bracket">&#9654;</span>
+            <span class="btn-text">CANCEL</span>
+            <span class="btn-bracket">&#9664;</span>
+          </button>
+          <button id="dropconfirm-drop-btn" class="dungeon-button" type="button">
+            <span class="btn-bracket">&#9654;</span>
+            <span class="btn-text">DROP</span>
+            <span class="btn-bracket">&#9664;</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>

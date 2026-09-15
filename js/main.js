@@ -427,6 +427,8 @@ function applyCarlStats(stats, derived) {
   renderChatLog([]);
   discoveredItems.length = 0;
   renderItems();
+  learnedAbilities = [];
+  renderAbilityHotbar();
 }
 
 // =======================================================
@@ -554,12 +556,7 @@ inventoryGridEl.addEventListener('click', (event) => {
   slot.classList.add('selected');
 
   const def = (itemCatalog && slot.dataset.itemId) ? itemCatalog[slot.dataset.itemId] : null;
-  renderEncounter({
-    name: (def && def.name) || slot.dataset.itemName || 'Item',
-    badge: (def && def.type) || 'item',
-    image: (def && def.image) || '',
-    icon: (def && def.icon) || slot.dataset.icon || '📦',
-  });
+  renderEncounter(itemEncounterCard(def, { name: slot.dataset.itemName, icon: slot.dataset.icon }));
 });
 
 function renderChatLog(entries) {
@@ -863,6 +860,7 @@ function buildSaveStub() {
     inventory: readInventory(),
     stash: stashItems.map((it) => ({ ...it })),
     itemsDiscovered: discoveredItems.map((d) => d.id),
+    learnedAbilities: [...learnedAbilities],
     systemLog: readSystemLog(),
     chat: readChatLog(),
     mapState: buildMapState(),
@@ -1171,6 +1169,11 @@ async function loadSlot(slotNum) {
       }
     });
     renderItems();
+
+    learnedAbilities = Array.isArray(data.learnedAbilities)
+      ? data.learnedAbilities.filter((id) => PERMANENT_ABILITIES[id])
+      : [];
+    renderAbilityHotbar();
 
     setActiveSave({ slot: slotNum, name: data.name || `Save ${slotNum}`, savedAt: data.savedAt || null });
     closeSaveLoad();
@@ -1500,6 +1503,15 @@ const mobEncounterCard = (def) => ({
   name: def.name, badge: def.role || def.badge || 'mob', image: def.image, icon: def.icon,
 });
 
+// card for an items.json def (shop rows, spell shop rows, inventory
+// selection) — `fallback` covers bag entries with no catalog def.
+const itemEncounterCard = (def, fallback) => ({
+  name: (def && def.name) || (fallback && fallback.name) || 'Item',
+  badge: (def && def.type) || 'item',
+  image: (def && def.image) || '',
+  icon: (def && def.icon) || (fallback && fallback.icon) || '📦',
+});
+
 // pick the right card for Carl's current position
 function encounterForCarl() {
   if (!currentLevelMap || !carlPos) return null;
@@ -1812,7 +1824,7 @@ function dungeonInputActive() {
   if (!game || !game.classList.contains('active')) return false;
   if (battle) return false;
   if (document.querySelector(
-    '.menu-overlay.active, .saveload-overlay.active, .guide-overlay.active, .statalloc-overlay.active, .stash-overlay.active',
+    '.menu-overlay.active, .saveload-overlay.active, .guide-overlay.active, .statalloc-overlay.active, .stash-overlay.active, .map-shop.active, .dropconfirm-overlay.active',
   )) return false;
   return true;
 }
@@ -1910,6 +1922,11 @@ document.addEventListener('keydown', (event) => {
   if (event.code === 'KeyU') {
     event.preventDefault();
     activateUseAction();
+    return;
+  }
+  if (event.code === 'KeyX') {
+    event.preventDefault();
+    activateDropAction();
     return;
   }
   const delta = MOVE_KEYS[event.code];
@@ -2014,6 +2031,20 @@ function rollDice(n, sides) {
 }
 const sgn = (n) => (n >= 0 ? `+${n}` : `${n}`);
 
+// sums the Defense bonus from any equipped (toggled-on) armor in the
+// bag — same "scan .inv-slot for an active toggle item" pattern as
+// currentVisionRadius() uses for the Torch. Currently just Toenail
+// Armor, but adds up fine if more armor pieces show up later.
+function carlArmorBonus() {
+  let bonus = 0;
+  inventoryGridEl.querySelectorAll('.inv-slot').forEach((s) => {
+    if (s.dataset.active !== '1') return;
+    const def = (itemCatalog && s.dataset.itemId) ? itemCatalog[s.dataset.itemId] : null;
+    if (def && def.effect && def.effect.defense) bonus += Number(def.effect.defense) || 0;
+  });
+  return bonus;
+}
+
 // --- combatant sheets -------------------------------------------
 function carlSheet() {
   const hp = readStatBar('hp');
@@ -2028,7 +2059,7 @@ function carlSheet() {
     luck,
     toHit: dex,
     dodge: 10 + Math.floor(dex / 2),
-    defense: 0,
+    defense: carlArmorBonus(),
     dmgDie: 6, dmgDieCount: 1, dmgMod: Math.floor(str / 3),
     critMin: luck >= 15 ? 19 : 20,
   };
@@ -2085,6 +2116,7 @@ function renderBattle() {
     combatNoteEl.hidden = !battle.riposte;
     if (battle.riposte) combatNoteEl.textContent = '⟳ Riposte ready — next FIGHT strikes for +50%';
   }
+  updateAbilityHotbarState();
 }
 
 // --- turn banner / round / callout ----------------------------
@@ -2390,6 +2422,7 @@ function openBattle(mobDef, mx, my) {
 function closeBattle() {
   if (mapCombatEl) mapCombatEl.classList.remove('active');
   battle = null;
+  updateAbilityHotbarState();
 }
 
 function carlTurnUI() {
@@ -2717,6 +2750,10 @@ document.addEventListener('keydown', (event) => {
     if (k === 'f') { event.preventDefault(); carlAct('attack'); }
     else if (k === 'd') { event.preventDefault(); carlAct('defend'); }
     else if (k === 'u') { event.preventDefault(); carlUseItemInBattle(); }
+    else if (['4', '5', '6', '7'].includes(k)) {
+      const abilityId = learnedAbilities[Number(k) - 4];
+      if (abilityId) { event.preventDefault(); castAbility(abilityId); }
+    }
   }
 });
 
@@ -2741,6 +2778,148 @@ function addGold(amount) {
   const el = document.getElementById('gold-value');
   if (!el) return;
   el.textContent = String((Number(el.textContent) || 0) + amount);
+}
+
+// =======================================================
+// Permanent abilities (action bar slots 4-7) — unlike an inventory
+// item, these are learned once and stay forever, gated only by SP.
+// Currently just Fireball, taught by reading a Fireball Scroll (see
+// ITEM_USE_HANDLERS['fireball-scroll'] below). Persisted as an id
+// array (learnedAbilities) in the save file.
+// =======================================================
+
+const PERMANENT_ABILITIES = {
+  fireball: {
+    id: 'fireball',
+    name: 'Fireball',
+    icon: '☄️',
+    iconImage: 'assets/icons/item-fireball-spell.png',
+    effect: { dmgDice: [3, 8], dmgFlat: 2, spCost: 25 },
+    tooltip: 'Fireball — 25 SP: auto-hits the mob for 3d8+2 fire (5–26), minus its armour. Costs your turn; usable any time Carl has the SP.',
+  },
+};
+
+// ability ids Carl has permanently learned, in the order he learned
+// them (also the order they fill hotbar slots 4-7)
+let learnedAbilities = [];
+
+const ABILITY_HOTBAR_SLOT_IDS = ['hotbar-ability-4', 'hotbar-ability-5', 'hotbar-ability-6', 'hotbar-ability-7'];
+
+// rebuilds all four ability slots from learnedAbilities — safe to call
+// any time (new game, save load, or right after learning one)
+function renderAbilityHotbar() {
+  ABILITY_HOTBAR_SLOT_IDS.forEach((slotId, i) => {
+    const slot = document.getElementById(slotId);
+    if (!slot) return;
+    const abilityId = learnedAbilities[i];
+    const ability = abilityId ? PERMANENT_ABILITIES[abilityId] : null;
+    if (!ability) {
+      slot.className = 'hotbar-slot empty';
+      slot.removeAttribute('role');
+      slot.removeAttribute('tabindex');
+      slot.removeAttribute('title');
+      delete slot.dataset.abilityId;
+      slot.innerHTML = `<span class="hotbar-key">${i + 4}</span>`;
+      return;
+    }
+    slot.className = 'hotbar-slot';
+    slot.setAttribute('role', 'button');
+    slot.setAttribute('tabindex', '0');
+    slot.dataset.abilityId = ability.id;
+    slot.title = `${ability.name} — ${ability.tooltip} Shortcut: ${i + 4}`;
+    slot.innerHTML = `<img src="${escapeHtml(ability.iconImage || '')}" alt="${escapeHtml(ability.name)}" class="hotbar-img"`
+      + ` onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">`
+      + `<span class="hotbar-label">${escapeHtml(ability.name)}</span>`
+      + `<span class="hotbar-key">${i + 4}</span>`;
+  });
+  updateAbilityHotbarState();
+}
+
+// grey out a learned ability whenever it can't actually be cast right
+// now (no fight, not Carl's turn, or short on SP) — nothing to fizzle
+// any more, so it just isn't clickable instead of wasting the turn
+function updateAbilityHotbarState() {
+  const sp = readStatBar('sp');
+  ABILITY_HOTBAR_SLOT_IDS.forEach((slotId) => {
+    const slot = document.getElementById(slotId);
+    if (!slot || !slot.dataset.abilityId) return;
+    const ability = PERMANENT_ABILITIES[slot.dataset.abilityId];
+    const cost = (ability && ability.effect && ability.effect.spCost) || 0;
+    const usable = !!battle && !battle.over && battle.phase === 'carl' && sp.current >= cost;
+    slot.classList.toggle('disabled', !usable);
+  });
+}
+
+// teaches Carl a permanent ability if there's an open slot and he
+// doesn't already know it. Returns true on success.
+function learnAbility(abilityId) {
+  if (!PERMANENT_ABILITIES[abilityId] || learnedAbilities.includes(abilityId)) return false;
+  if (learnedAbilities.length >= ABILITY_HOTBAR_SLOT_IDS.length) return false; // out of slots
+  learnedAbilities.push(abilityId);
+  renderAbilityHotbar();
+  return true;
+}
+
+// Cast a permanent ability from the hotbar — same shape as
+// carlUseItemInBattle, but there's no item/slot involved and nothing is
+// ever consumed; the SP cost is the only gate (enforced before this
+// even runs, via updateAbilityHotbarState disabling the slot).
+async function castAbility(abilityId) {
+  const ability = PERMANENT_ABILITIES[abilityId];
+  if (!ability) return;
+  if (!battle || battle.over) {
+    appendSystemLog(`Carl doesn't need ${ability.name} outside a fight.`);
+    return;
+  }
+  if (battle.phase !== 'carl') {
+    appendSystemLog("It's not Carl's turn.");
+    return;
+  }
+  const e = ability.effect || {};
+  const spCost = e.spCost || 0;
+  const sp = readStatBar('sp');
+  if (sp.current < spCost) {
+    appendSystemLog(`Not enough SP for ${ability.name} — needs ${spCost}, Carl has ${sp.current}.`);
+    return; // nothing to waste — no scroll, no turn spent
+  }
+
+  battle.phase = 'resolving';
+  setCombatButtons();
+  updateAbilityHotbarState();
+  setCombatTurn(`CARL CASTS ${ability.name.toUpperCase()}`, 'wait');
+  combatLog(`▶ CARL casts ${ability.name}`, 'l-turn');
+
+  const spAfter = sp.current - spCost;
+  setStatBar('sp', spAfter, sp.max);
+  battle.carl.sp = spAfter;
+  battle.carl.maxSp = sp.max;
+
+  const [n, sides] = e.dmgDice || [3, 8];
+  const roll = rollDice(n, sides);
+  const raw = roll.total + (e.dmgFlat || 0);
+  const armour = e.ignoresArmour ? 0 : (battle.mob.defense || 0);
+  const dmg = Math.max(1, raw - armour);
+  const before = battle.mob.hp;
+  battle.mob.hp -= dmg;
+  combatLog(`  WHOOMP  ${n}d${sides}[${roll.rolls.join(',')}]${e.dmgFlat ? ` +${e.dmgFlat}` : ''}${armour ? ` −${armour} DEF` : ''}  −${spCost} SP = ${dmg}`, 'l-dmg');
+  combatLog(`  ${battle.mob.name}: ${Math.max(0, before)} → ${Math.max(0, battle.mob.hp)} HP`);
+  setCombatCallout(`CARL CASTS ${ability.name.toUpperCase()}  —  ${dmg}`);
+  playImpact('mob', dmg, dmg >= 20 ? 'crit' : 'hit');
+  renderBattle();
+
+  await beat(560);
+  if (!battle || battle.over) return;
+  if (battle.mob.hp <= 0) { endFight('win'); return; }
+  mobTurn();
+}
+
+const hudHotbarEl = document.querySelector('.hud-hotbar');
+if (hudHotbarEl) {
+  hudHotbarEl.addEventListener('click', (event) => {
+    const slot = event.target.closest('.hotbar-slot[data-ability-id]');
+    if (!slot || slot.classList.contains('disabled')) return;
+    castAbility(slot.dataset.abilityId);
+  });
 }
 
 const ITEM_USE_HANDLERS = {
@@ -2788,6 +2967,22 @@ const ITEM_USE_HANDLERS = {
       : 'Carl snuffs the torch. The walls close back in.');
   },
 
+  // Toenail Armor — toggle on/off, same shape as the Torch. +Defense
+  // while worn, no downside, never consumed. Works mid-fight so Carl
+  // can strap it on the moment things get ugly.
+  'toenail-armor'(def, slot) {
+    const nowOn = slot.dataset.active !== '1';
+    if (nowOn) slot.dataset.active = '1';
+    else delete slot.dataset.active;
+    slot.classList.toggle('active-item', nowOn);
+    slot.title = invTooltip(def, nowOn);
+    if (battle) battle.carl.defense = carlArmorBonus(); // live fight feels it immediately
+    const bonus = (def.effect && def.effect.defense) || 0;
+    appendSystemLog(nowOn
+      ? `Carl straps on the ${def.name}. +${bonus} Defense — and a smell that precedes him.`
+      : `Carl peels off the ${def.name}. Defense bonus gone; so, mercifully, is some of the smell.`);
+  },
+
   // Dynamite — a thrown burst. Combat only: flat dmgDice + dmgFlat to the
   // mob, ignoring armour. Costs the turn (handled by carlUseItemInBattle).
   // Outside a fight it does nothing and isn't consumed.
@@ -2808,6 +3003,71 @@ const ITEM_USE_HANDLERS = {
     renderBattle();
     removeInvSlot(slot); // consumable
     if (battle.mob.hp <= 0) endFight('win');
+  },
+
+  // Fireball Spell — a one-shot combat scroll that also burns SP. Auto-
+  // hits the mob (no to-hit roll, like Dynamite) for dmgDice + dmgFlat,
+  // but the mob's armour still soaks part of it — Dynamite stays the only
+  // DEF-skipping option. Spends effect.spCost SP; cast with less than
+  // that in the tank and it fizzles — the scroll and the turn are both
+  // gone for nothing. Costs the turn (handled by carlUseItemInBattle).
+  // Outside a fight it does nothing and isn't consumed.
+  'fireball-spell': function useFireball(def, slot) {
+    if (!battle || battle.over || battle.phase === 'over') {
+      appendSystemLog('Carl skims the Fireball scroll. Setting an empty hallway on fire proves nothing.');
+      return; // not consumed
+    }
+    const e = def.effect || {};
+    const spCost = e.spCost || 0;
+    const sp = readStatBar('sp');
+    const enoughSp = sp.current >= spCost;
+    if (spCost > 0) setStatBar('sp', Math.max(0, sp.current - spCost), sp.max);
+
+    // Not enough SP to hold the shape — the paper still burns and the mob
+    // still gets its swing, but nothing lands. Watch the bar.
+    if (!enoughSp) {
+      combatLog(`  FIZZLE  needed ${spCost} SP, had ${sp.current} — the words gutter out`, 'l-miss');
+      appendSystemLog("The Fireball fizzles in Carl's hands — not enough SP to hold the shape. Scroll wasted.", 'danger');
+      renderBattle();
+      removeInvSlot(slot); // burned anyway
+      return;
+    }
+
+    const [n, sides] = e.dmgDice || [3, 8];
+    const roll = rollDice(n, sides);
+    const raw = roll.total + (e.dmgFlat || 0);
+    const armour = e.ignoresArmour ? 0 : (battle.mob.defense || 0);
+    const dmg = Math.max(1, raw - armour);
+    const before = battle.mob.hp;
+    battle.mob.hp -= dmg;
+    combatLog(`  WHOOMP  ${n}d${sides}[${roll.rolls.join(',')}]${e.dmgFlat ? ` +${e.dmgFlat}` : ''}${armour ? ` −${armour} DEF` : ''}${spCost ? `  −${spCost} SP` : ''} = ${dmg}`, 'l-dmg');
+    combatLog(`  ${battle.mob.name}: ${Math.max(0, before)} → ${Math.max(0, battle.mob.hp)} HP`);
+    playImpact('mob', dmg, dmg >= 20 ? 'crit' : 'hit');
+    renderBattle();
+    removeInvSlot(slot); // consumable
+    if (battle.mob.hp <= 0) endFight('win');
+  },
+
+  // Fireball Scroll — expensive, one-time read that permanently teaches
+  // Fireball instead of casting it once (see PERMANENT_ABILITIES /
+  // learnAbility above). Reading takes a level head: blocked mid-fight.
+  // Does nothing — and isn't consumed — if Carl already knows it or
+  // every ability slot is taken.
+  'fireball-scroll': function learnFireball(def, slot) {
+    if (battle) {
+      appendSystemLog("Not with a mob mid-swing — reading takes a level head. Step out of the fight first.");
+      return; // not consumed
+    }
+    if (learnedAbilities.includes('fireball')) {
+      appendSystemLog('Carl already knows Fireball by heart. This scroll is just a spare copy of something he no longer needs.');
+      return; // not consumed — don't waste a spare by accident
+    }
+    if (!learnAbility('fireball')) {
+      appendSystemLog("No open slot left on Carl's action bar for another ability.");
+      return; // not consumed
+    }
+    appendSystemLog('Carl studies the Fireball Scroll until the shape of the spell sticks. Fireball joins the action bar — 25 SP a cast, any time.', 'loot');
+    removeInvSlot(slot); // consumable — one-time read
   },
 
   // Small Health Potion — heal a % of Max HP, then it's gone. Used at
@@ -2856,6 +3116,76 @@ if (hotbarUseBtn) {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
       activateUseAction();
+    }
+  });
+}
+
+// =======================================================
+// Drop action (X key / hotbar slot) — permanently discard the selected
+// inventory item. It's "left in the dungeon": no pickup, ever, but the
+// bag slot comes free. Blocked in combat (never spends a fight turn).
+// The dropconfirm-overlay modal is the guard.
+// =======================================================
+
+const dropConfirmOverlay = document.getElementById('dropconfirm-overlay');
+const dropConfirmNameEl = document.getElementById('dropconfirm-name');
+const dropConfirmDropBtn = document.getElementById('dropconfirm-drop-btn');
+const dropConfirmCancelBtn = document.getElementById('dropconfirm-cancel-btn');
+let dropPendingSlot = null;
+
+function activateDropAction() {
+  if (dropConfirmOverlay && dropConfirmOverlay.classList.contains('active')) return;
+  if (battle) {
+    appendSystemLog("Not mid-fight — Carl isn't rummaging through his bag with a mob swinging at him.");
+    return;
+  }
+  if (!selectedInvSlot || !selectedInvSlot.dataset.filled) {
+    appendSystemLog('Select an item first, then Drop.');
+    return;
+  }
+  dropPendingSlot = selectedInvSlot;
+  const name = selectedInvSlot.dataset.itemName || 'the item';
+  if (dropConfirmNameEl) dropConfirmNameEl.textContent = name;
+  if (!dropConfirmOverlay) { confirmDrop(); return; } // no modal in the DOM — just drop
+  dropConfirmOverlay.classList.add('active');
+  if (dropConfirmCancelBtn) dropConfirmCancelBtn.focus(); // default to the safe choice
+}
+
+function closeDropConfirm() {
+  dropPendingSlot = null;
+  if (dropConfirmOverlay) dropConfirmOverlay.classList.remove('active');
+}
+
+function confirmDrop() {
+  const slot = dropPendingSlot;
+  if (!slot || !slot.dataset.filled) { closeDropConfirm(); return; }
+  const name = slot.dataset.itemName || 'the item';
+  removeInvSlot(slot); // wipes the slot, compacts the bag, clears the selection
+  appendSystemLog(`Carl drops ${name}. It's gone — the dungeon keeps what it's given.`);
+  closeDropConfirm();
+}
+
+if (dropConfirmOverlay) {
+  if (dropConfirmDropBtn) dropConfirmDropBtn.addEventListener('click', confirmDrop);
+  if (dropConfirmCancelBtn) dropConfirmCancelBtn.addEventListener('click', closeDropConfirm);
+  dropConfirmOverlay.addEventListener('click', (event) => {
+    if (event.target === dropConfirmOverlay) closeDropConfirm();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && dropConfirmOverlay.classList.contains('active')) {
+      event.preventDefault();
+      closeDropConfirm();
+    }
+  });
+}
+
+const hotbarDropBtn = document.getElementById('hotbar-drop');
+if (hotbarDropBtn) {
+  hotbarDropBtn.addEventListener('click', activateDropAction);
+  hotbarDropBtn.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      activateDropAction();
     }
   });
 }
@@ -3057,9 +3387,9 @@ const SAFE_NPC_LINES = {
   1: {
     chat: 'bautista',
     lines: [
-      "Shop's not stocked yet, pal. Come back down the line.",
-      'I sell things. Currently: nothing. Enthralling, I know.',
-      "No credit, no browsing, no shop. Not yet, anyway.",
+      "Shop's open. Press U. BUY tab, SELL tab, and don't argue the quote — that's what the haggle's for.",
+      "You want gear or you want to unload junk? Either way it's U, and either way I get my cut.",
+      "Every price is a negotiation, pal. Bring your LUCK and press U.",
     ],
   },
   5: {
@@ -3073,9 +3403,9 @@ const SAFE_NPC_LINES = {
   2: {
     chat: 'tiatha',
     lines: [
-      'The spell trade is not open. Do not make me repeat myself.',
-      'You are not ready for what I would sell you. Neither is my inventory.',
-      "Come back when the words on these pages won't kill you.",
+      "The spell trade is open. Stand on my mark, press U, and do not haggle.",
+      "One spell on the shelf and it is already more than you can handle. Press U to look.",
+      "Gold for words, Crawler. Press U on my tile when you are ready to spend.",
     ],
   },
   3: {
@@ -3108,7 +3438,9 @@ function safeRoomUse() {
     case '6': restAtBunk(); return true;
     case '7': openStash(); return true;
     case '3': openGuildTraining(); return true;
-    case '1': case '2': case '4': case '9':
+    case '2': openSpellShop(); return true;
+    case '1': openShop(); return true;
+    case '4': case '9':
       safeRoomNpcSpeak(ch);
       return true;
     default:
@@ -3282,6 +3614,367 @@ function donutGreenRoom() {
   } else {
     appendChatLine('"I already told you everything I heard. Go be useful."', 'donut');
   }
+}
+
+// --- Spell Master shop --------------------------------------
+// Mistress Tiatha sells spells for gold — click BUY and the spell
+// drops into Carl's bag as a one-use casting. Price is the item's
+// own `value`; no stock limit, no sell-back. Every items.json entry
+// tagged "vendor": "spell-master" shows up here automatically.
+const spellShopOverlay = document.getElementById('map-spellshop');
+const spellShopList = document.getElementById('spellshop-list');
+const spellShopGoldEl = document.getElementById('spellshop-gold');
+const spellShopCloseBtn = document.getElementById('spellshop-close-btn');
+
+function spellShopStock() {
+  if (!itemCatalog) return [];
+  return Object.values(itemCatalog)
+    .filter((it) => it.vendor === 'spell-master')
+    .sort((a, b) => (a.value || 0) - (b.value || 0));
+}
+
+function readGold() {
+  const el = document.getElementById('gold-value');
+  return Number(el && el.textContent) || 0;
+}
+
+function bagIsFull() {
+  return readInventory().length >= inventoryGridEl.querySelectorAll('.inv-slot').length;
+}
+
+function renderSpellShop() {
+  if (!spellShopList) return;
+  const gold = readGold();
+  const full = bagIsFull();
+  if (spellShopGoldEl) spellShopGoldEl.textContent = String(gold);
+
+  spellShopList.innerHTML = '';
+  spellShopStock().forEach((def) => {
+    const price = Number(def.value) || 0;
+    const icon = def.iconImage
+      ? `<img src="${escapeHtml(def.iconImage)}" alt=""`
+        + ` onerror="const p=this.parentElement; this.remove(); p.textContent=${JSON.stringify(def.icon || '')};">`
+      : escapeHtml(def.icon || '');
+
+    const row = document.createElement('div');
+    row.className = 'spellshop-row';
+    row.innerHTML = `<div class="spellshop-row-icon">${icon}</div>`
+      + `<div><p class="spellshop-row-name">${escapeHtml(def.name || def.id)}</p>`
+      + `<p class="spellshop-row-blurb">${escapeHtml(def.tooltip || def.description || '')}</p></div>`
+      + `<button type="button" class="spellshop-buy" data-id="${escapeHtml(def.id)}">BUY &middot; ${price}g</button>`;
+    row._card = itemEncounterCard(def);
+
+    const btn = row.querySelector('.spellshop-buy');
+    if (def.learnsAbility && learnedAbilities.includes(def.learnsAbility)) {
+      btn.disabled = true; btn.textContent = 'KNOWN';
+    } else if (gold < price) { btn.disabled = true; btn.textContent = `NEED ${price}g`; }
+    else if (full) { btn.disabled = true; btn.textContent = 'BAG FULL'; }
+    spellShopList.appendChild(row);
+  });
+}
+
+function buySpell(id) {
+  const def = itemCatalog && itemCatalog[id];
+  if (!def || def.vendor !== 'spell-master') return;
+  if (def.learnsAbility && learnedAbilities.includes(def.learnsAbility)) return; // already known
+  const price = Number(def.value) || 0;
+  if (readGold() < price) {
+    appendChatLine('"Come back when you can pay for it."', 'tiatha');
+    return;
+  }
+  if (bagIsFull()) {
+    appendSystemLog("Carl's bag is full — nowhere to put a new spell.");
+    return;
+  }
+  addGold(-price);
+  addToInventory(def); // also records it as discovered for the Guide
+  appendChatLine('"Mind the verbs. Fluff a syllable and it goes off in your hand."', 'tiatha');
+  appendSystemLog(`Carl buys ${def.name} from Tiatha for ${price} gold.`, 'loot');
+  renderSpellShop();
+}
+
+function openSpellShop() {
+  if (!spellShopOverlay) return;
+  if (!spellShopStock().length) {
+    appendChatLine('"Nothing on the shelf worth your while today."', 'tiatha');
+    return;
+  }
+  renderSpellShop();
+  spellShopOverlay.classList.add('active');
+}
+
+function closeSpellShop() {
+  if (spellShopOverlay) spellShopOverlay.classList.remove('active');
+  updateEncounter();
+}
+
+if (spellShopOverlay) {
+  if (spellShopList) {
+    spellShopList.addEventListener('click', (event) => {
+      const row = event.target.closest('.spellshop-row');
+      const btn = event.target.closest('.spellshop-buy');
+      if (btn && !btn.disabled) buySpell(btn.dataset.id);
+      if (row && row._card) renderEncounter(row._card);
+    });
+  }
+  if (spellShopCloseBtn) spellShopCloseBtn.addEventListener('click', closeSpellShop);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && spellShopOverlay.classList.contains('active')) {
+      event.preventDefault();
+      closeSpellShop();
+    }
+  });
+}
+
+// --- Bautista's Shop ---------------------------------------
+// One modal, BUY / SELL tabs. BUY stock is every catalog item that
+// isn't vendor-locked to another shop (Loot Box excluded — drop-only).
+// SELL is Carl's whole bag at each item's `value`. The price in the
+// list is only Bautista's opening quote; the real number comes from a
+// LUCK haggle roll (rollHaggle) made when Carl commits — crit robs him
+// blind, fumble gets Carl fleeced.
+const SHOP_BUY_MARKUP = 1.3; // Bautista's margin over an item's value
+
+const shopOverlay = document.getElementById('map-shop');
+const shopListEl = document.getElementById('shop-list');
+const shopGoldEl = document.getElementById('shop-gold');
+const shopResultEl = document.getElementById('shop-result');
+const shopTabsEl = document.getElementById('shop-tabs');
+const shopCloseBtn = document.getElementById('shop-close-btn');
+let shopTab = 'buy';
+
+function shopCanBuy(def) {
+  if (!def) return false;
+  if (def.id === 'loot-box') return false;              // drop-only container
+  if (def.vendor && def.vendor !== 'shop') return false; // e.g. spell-master
+  if (def.shopBuyable === false) return false;
+  return (Number(def.value) || 0) > 0;
+}
+
+function shopBuyStock() {
+  if (!itemCatalog) return [];
+  return Object.values(itemCatalog)
+    .filter(shopCanBuy)
+    .sort((a, b) => (a.value || 0) - (b.value || 0));
+}
+
+function shopBuyQuote(def) {
+  return Math.max(1, Math.ceil((Number(def.value) || 0) * SHOP_BUY_MARKUP));
+}
+
+// One haggle: d20 + LUCK mod, mapped to a multiplier on the quoted
+// price. For a BUY, mult > 1 means Carl overpays; for a SELL, mult < 1
+// means he's short-changed. Crit range widens at LUCK 15+ (as in combat).
+const SHOP_HAGGLE_TIERS = {
+  fumble: { buyMult: 1.25, sellMult: 0.70, label: 'FLEECED', tier: 'fumble' },
+  poor:   { buyMult: 1.12, sellMult: 0.85, label: 'POOR', tier: 'poor' },
+  fair:   { buyMult: 1.00, sellMult: 1.00, label: 'FAIR', tier: 'fair' },
+  good:   { buyMult: 0.90, sellMult: 1.15, label: 'GOOD', tier: 'good' },
+  crit:   { buyMult: 0.75, sellMult: 1.35, label: 'STEAL', tier: 'crit' },
+};
+
+function rollHaggle() {
+  const luck = Number(hudStatValues.luck.textContent) || 10;
+  const mod = Math.floor((luck - 10) / 2);
+  const roll = rollDie(20);
+  const total = roll + mod;
+  const critMin = luck >= 15 ? 19 : 20;
+  let key;
+  if (roll === 1) key = 'fumble';
+  else if (roll >= critMin) key = 'crit';
+  else if (total <= 8) key = 'poor';
+  else if (total >= 15) key = 'good';
+  else key = 'fair';
+  return { roll, mod, total, ...SHOP_HAGGLE_TIERS[key] };
+}
+
+const SHOP_BARKS = {
+  buy: {
+    FLEECED: '"Pleasure doing business. For me."',
+    POOR: "\"That's the price. Take it or leave it.\"",
+    FAIR: '"Fair\'s fair. Next."',
+    GOOD: '"...fine. Hard bargain. Don\'t gloat."',
+    STEAL: '"Get out. GET OUT. And don\'t tell anyone what you paid."',
+  },
+  sell: {
+    FLEECED: '"I\'ll give you this much and you\'ll thank me."',
+    POOR: '"Barely worth the counter space. Here."',
+    FAIR: '"Standard rate. Don\'t spend it all in one place."',
+    GOOD: '"Caught me in a good mood. Rare."',
+    STEAL: '"...how did you talk me into that. Take it and go."',
+  },
+};
+
+function reportHaggle(kind, def, quote, final, h) {
+  const verb = kind === 'buy' ? 'pays' : 'gets';
+  const modStr = `${h.mod >= 0 ? '+' : ''}${h.mod}`;
+  appendSystemLog(
+    `Haggle: d20[${h.roll}] ${modStr} LUCK = ${h.total} — ${h.label}. `
+    + `Carl ${verb} ${final}g for ${def.name} (Bautista quoted ${quote}g).`,
+    'loot',
+  );
+  appendChatLine(SHOP_BARKS[kind][h.label], 'bautista');
+  if (shopResultEl) {
+    shopResultEl.textContent =
+      `${h.label} — d20[${h.roll}] ${modStr} LUCK = ${h.total}. `
+      + `${def.name}: ${kind === 'buy' ? 'paid' : 'sold for'} ${final}g (quote ${quote}g).`;
+    shopResultEl.className = `shop-result tier-${h.tier}`;
+    shopResultEl.hidden = false;
+  }
+}
+
+function shopIconHtml(def) {
+  if (def && def.iconImage) {
+    return `<img src="${escapeHtml(def.iconImage)}" alt=""`
+      + ` onerror="const p=this.parentElement; this.remove(); p.textContent=${JSON.stringify((def && def.icon) || '')};">`;
+  }
+  return escapeHtml((def && def.icon) || '');
+}
+
+function renderShopBuyList() {
+  const gold = readGold();
+  const full = bagIsFull();
+  const stock = shopBuyStock();
+  if (!stock.length) {
+    shopListEl.innerHTML = '<p class="shop-empty">Bautista has nothing to sell right now.</p>';
+    return;
+  }
+  stock.forEach((def) => {
+    const quote = shopBuyQuote(def);
+    const worst = Math.ceil(quote * SHOP_HAGGLE_TIERS.fumble.buyMult); // gate on the gouge
+    const row = document.createElement('div');
+    row.className = 'shop-row';
+    row.innerHTML = `<div class="shop-row-icon">${shopIconHtml(def)}</div>`
+      + `<div><p class="shop-row-name">${escapeHtml(def.name || def.id)}</p>`
+      + `<p class="shop-row-blurb">${escapeHtml(def.tooltip || def.description || '')}</p></div>`
+      + `<button type="button" class="shop-act" data-act="buy" data-id="${escapeHtml(def.id)}">BUY &middot; ~${quote}g</button>`;
+    row._card = itemEncounterCard(def);
+    const btn = row.querySelector('.shop-act');
+    if (full) { btn.disabled = true; btn.textContent = 'BAG FULL'; }
+    else if (gold < worst) { btn.disabled = true; btn.textContent = `NEED ~${worst}g`; }
+    shopListEl.appendChild(row);
+  });
+}
+
+function renderShopSellList() {
+  const bag = readInventory();
+  if (!bag.length) {
+    shopListEl.innerHTML = '<p class="shop-empty">Carl\'s bag is empty — nothing to sell.</p>';
+    return;
+  }
+  bag.forEach((entry, idx) => {
+    const def = (itemCatalog && entry.id) ? itemCatalog[entry.id] : null;
+    const worth = def ? (Number(def.value) || 0) : 0;
+    const row = document.createElement('div');
+    row.className = 'shop-row';
+    const name = (def && def.name) || entry.name || 'Unknown';
+    const blurb = (def && (def.tooltip || def.description)) || '';
+    row.innerHTML = `<div class="shop-row-icon">${shopIconHtml(def || entry)}</div>`
+      + `<div><p class="shop-row-name">${escapeHtml(name)}</p>`
+      + `<p class="shop-row-blurb">${escapeHtml(blurb)}</p></div>`
+      + `<button type="button" class="shop-act" data-act="sell" data-idx="${idx}">`
+      + `${worth > 0 ? `SELL &middot; ~${worth}g` : 'NO VALUE'}</button>`;
+    row._card = itemEncounterCard(def, entry);
+    const btn = row.querySelector('.shop-act');
+    if (worth <= 0) btn.disabled = true;
+    shopListEl.appendChild(row);
+  });
+}
+
+function renderShop() {
+  if (!shopListEl) return;
+  if (shopGoldEl) shopGoldEl.textContent = String(readGold());
+  if (shopTabsEl) {
+    shopTabsEl.querySelectorAll('.shop-tab').forEach((b) => {
+      b.classList.toggle('active', b.dataset.tab === shopTab);
+    });
+  }
+  shopListEl.innerHTML = '';
+  if (shopTab === 'sell') renderShopSellList();
+  else renderShopBuyList();
+}
+
+function shopBuy(id) {
+  const def = itemCatalog && itemCatalog[id];
+  if (!def || !shopCanBuy(def)) return;
+  if (bagIsFull()) {
+    appendSystemLog("Carl's bag is full — sell or drop something first.");
+    return;
+  }
+  const quote = shopBuyQuote(def);
+  const h = rollHaggle();
+  const price = Math.max(1, Math.ceil(quote * h.buyMult));
+  if (readGold() < price) {
+    appendChatLine('"Haggled you a fair price and you still can\'t cover it? Out."', 'bautista');
+    appendSystemLog(`Carl can't afford ${def.name} — Bautista's haggled price came to ${price}g.`, 'danger');
+    return;
+  }
+  addGold(-price);
+  addToInventory(def); // also records the item as discovered for the Guide
+  reportHaggle('buy', def, quote, price, h);
+  renderShop();
+}
+
+function shopSell(idx) {
+  const bag = readInventory();
+  const entry = bag[idx];
+  if (!entry) return;
+  const def = (itemCatalog && entry.id) ? itemCatalog[entry.id] : null;
+  const worth = def ? (Number(def.value) || 0) : 0;
+  if (worth <= 0) {
+    appendChatLine('"That\'s worthless. I\'m not a charity."', 'bautista');
+    return;
+  }
+  const h = rollHaggle();
+  const payout = Math.max(1, Math.floor(worth * h.sellMult));
+  bag.splice(idx, 1);
+  renderInventory(bag);
+  updateEncounter(); // the sold item may have been pinned in the panel
+  addGold(payout);
+  reportHaggle('sell', def, worth, payout, h);
+  renderShop();
+}
+
+function openShop() {
+  if (!shopOverlay) return;
+  shopTab = 'buy';
+  if (shopResultEl) { shopResultEl.hidden = true; shopResultEl.textContent = ''; }
+  renderShop();
+  shopOverlay.classList.add('active');
+}
+
+function closeShop() {
+  if (shopOverlay) shopOverlay.classList.remove('active');
+  updateEncounter();
+}
+
+if (shopOverlay) {
+  if (shopTabsEl) {
+    shopTabsEl.addEventListener('click', (event) => {
+      const tab = event.target.closest('.shop-tab');
+      if (!tab || tab.dataset.tab === shopTab) return;
+      shopTab = tab.dataset.tab === 'sell' ? 'sell' : 'buy';
+      renderShop();
+    });
+  }
+  if (shopListEl) {
+    shopListEl.addEventListener('click', (event) => {
+      const row = event.target.closest('.shop-row');
+      const btn = event.target.closest('.shop-act');
+      if (btn && !btn.disabled) {
+        if (btn.dataset.act === 'buy') shopBuy(btn.dataset.id);
+        else if (btn.dataset.act === 'sell') shopSell(Number(btn.dataset.idx));
+      }
+      if (row && row._card) renderEncounter(row._card);
+    });
+  }
+  if (shopCloseBtn) shopCloseBtn.addEventListener('click', closeShop);
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && shopOverlay.classList.contains('active')) {
+      event.preventDefault();
+      closeShop();
+    }
+  });
 }
 
 // --- footlocker stash ---------------------------------------

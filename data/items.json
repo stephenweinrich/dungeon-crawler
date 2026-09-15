@@ -1,5 +1,5 @@
 {
-  "_comment": "Master item list — everything Carl can pick up or be handed. Carl's actual inventory lives in the save slot, not here. 'type': consumable = gone after one Use; permanent = reusable, may toggle; container = opened later. 'value' is the Safe Room shop SELL price (not wired yet).",
+  "_comment": "Master item list — everything Carl can pick up or be handed. Carl's actual inventory lives in the save slot, not here. 'type': consumable = gone after one Use; permanent = reusable, may toggle; container = opened later. 'value' is the item's base gold worth: Bautista's Shop sells it for roughly value x1.3 and buys it back for around value, both haggled by LUCK on the transaction. 'vendor' pins an item to one shop — 'spell-master' = Tiatha only, 'shop' = Bautista only; no 'vendor' lets it show anywhere it fits. 'shopBuyable': false keeps it out of the Shop's BUY list (still sellable). The Loot Box is sell-only by special case (drop-only container). 'learnsAbility' marks a consumable that, read once, permanently unlocks a PERMANENT_ABILITIES entry (js/main.js) on Carl's action bar instead of firing an effect itself — the Spell Master won't sell a second copy once it's known.",
   "items": [
     {
       "id": "loot-box",
@@ -51,6 +51,45 @@
       "effect": { "dmgDice": [2, 10], "ignoresArmour": true },
       "description": "A fat red stick of something the System insists is 'legally distinct from dynamite,' with a fuse that burns exactly as long as the drama requires. Lob it in a fight for a flat 2d10 — up to 20 — that armour does nothing about. The crawlspace goblins hoard the stuff; nobody's sure where they get it, and nobody's asking.",
       "tooltip": "Dynamite — Use (U) in a fight to blast the mob for 2d10 (up to 20), ignoring armour. Costs your turn; the mob still swings back. One and done."
+    },
+    {
+      "id": "fireball-spell",
+      "name": "Fireball Spell",
+      "type": "consumable",
+      "icon": "☄️",
+      "image": "assets/cards/item-fireball-spell.png",
+      "iconImage": "assets/icons/item-fireball-spell.png",
+      "value": 60,
+      "vendor": "spell-master",
+      "effect": { "dmgDice": [3, 8], "dmgFlat": 2, "spCost": 25 },
+      "description": "One combustion spell scrawled on a scrap of butcher paper by somebody who plainly enjoyed the work — the runes still smell of ozone and cheap ink. Read it aloud in a fight: it costs 25 SP to channel, then dumps 3d8+2 of raw fire onto the mob with no aiming roll. Armour still soaks a little, because physics gets a vote even when magic doesn't. The paper burns to ash whether the words catch or not, so check your SP before you commit.",
+      "tooltip": "Fireball Spell — Use (U) in a fight: spend 25 SP to auto-hit the mob for 3d8+2 fire (5–26), minus its armour. Under 25 SP it fizzles — scroll and turn both wasted. Costs your turn; the mob still swings back. One and done."
+    },
+    {
+      "id": "fireball-scroll",
+      "name": "Fireball Scroll",
+      "type": "consumable",
+      "icon": "📜",
+      "image": "assets/cards/item-fireball-scroll.png",
+      "iconImage": "assets/icons/item-fireball-scroll.png",
+      "value": 400,
+      "vendor": "spell-master",
+      "learnsAbility": "fireball",
+      "description": "Bound in scorched leather and sealed with a wax sigil that's still faintly warm, this is no one-shot cantrip — it's the whole incantation, memorized rather than merely read. Study it in a quiet moment, well clear of anything with teeth, and the shape of the spell burns itself into Carl's memory for good: Fireball joins his action bar, castable in any fight from then on for the same 25 SP it always cost — no scroll to burn through, no running out.",
+      "tooltip": "Fireball Scroll — Use (U) outside a fight to permanently learn Fireball: it joins your action bar for 25 SP a cast, unlimited casts, ever after. One-time read; the scroll is consumed learning it. Tiatha won't sell a second one once Carl knows it."
+    },
+    {
+      "id": "toenail-armor",
+      "name": "Toenail Armor",
+      "type": "permanent",
+      "toggle": true,
+      "icon": "🦶",
+      "value": 380,
+      "effect": { "defense": 7 },
+      "basedOn": "tone: riffs on the series' running gross-out comedy about Carl's post-apocalypse hygiene collapse; not a specific book event",
+      "description": "Weeks without a trim, three System mutations, and one deeply cursed growth spurt later, Carl's toenails stopped being a hygiene problem and became a structural material. Pried off, filed to an edge, and lashed together with boot-leather cord, the plates turn aside a blade about as well as anything else on this floor — and the smell does some of the deterring on its own. Princess Donut has refused to be within ten feet of it since the unveiling.",
+      "tooltipOff": "Toenail Armor — UNEQUIPPED. No effect. Use (U) to strap it on: +7 Defense against every hit. Reusable, no downside — try not to think about it too hard.",
+      "tooltipOn": "Toenail Armor — EQUIPPED. +7 Defense against every hit. Use (U) to take it off."
     }
   ]
 }
