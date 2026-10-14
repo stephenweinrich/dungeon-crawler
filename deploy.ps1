@@ -99,7 +99,9 @@ if ($SyncSettings) {
 
 # ---- deploy ----------------------------------------------------------------
 Step "Deploying to $AppName ($ResourceGroup)"
-az webapp deploy --name $AppName --resource-group $ResourceGroup --src-path $zip --type zip --clean false --restart true
+az webapp deploy --name $AppName --resource-group $ResourceGroup --src-path $zip --type zip --clean false --restart true --track-status false
+# --track-status false skips the CLI's own runtime-status polling (it can fail on a dropped
+# connection even though the upload succeeded); the smoke test below is the real check.
 if ($LASTEXITCODE -ne 0) { Fail 'az webapp deploy failed.' }
 Remove-Item $zip -Force -ErrorAction SilentlyContinue
 
