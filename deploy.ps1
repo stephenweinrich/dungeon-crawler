@@ -13,8 +13,8 @@
 
   Run:   npm run deploy          (or:  .\deploy.ps1)
   Flags: -DryRun        build the zip and run checks, upload nothing
-         -SyncSettings  also push ADMIN_PASSWORD / OPENAI_* from your local .env
-                        to the app's settings (values are never printed)
+         -SyncSettings  also store ADMIN_PASSWORD / OPENAI_* from your local .env in
+                        Azure Key Vault and link the app to them (never printed)
          -Force         skip the "not on main / not pushed" safety checks
 
   Needs: Azure CLI (`az login` done) and git.
@@ -71,30 +71,11 @@ Write-Host ('    {0:N1} MB -> {1}' -f ((Get-Item $zip).Length / 1MB), $zip)
 
 if ($DryRun) { Write-Host 'Dry run: nothing uploaded.' -ForegroundColor Yellow; exit 0 }
 
-# ---- app settings (optional) -----------------------------------------------
+# ---- secrets (optional) ----------------------------------------------------
 if ($SyncSettings) {
-  Step 'Syncing settings from .env (values hidden)'
-  $keys = 'ADMIN_PASSWORD', 'OPENAI_API_KEY', 'OPENAI_IMAGE_MODEL', 'OPENAI_IMAGE_QUALITY', 'OPENAI_TEXT_MODEL'
-  $settings = [ordered]@{}
-  if (Test-Path .env) {
-    foreach ($line in Get-Content .env) {
-      if ($line -match '^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*?)\s*$' -and $keys -contains $Matches[1]) {
-        $v = $Matches[2].Trim('"').Trim("'")
-        if ($v) { $settings[$Matches[1]] = $v }
-      }
-    }
-  }
-  if ($settings.Count -eq 0) {
-    Write-Host '    nothing to sync (no matching non-empty values in .env)' -ForegroundColor Yellow
-  } else {
-    $tmp = Join-Path ([System.IO.Path]::GetTempPath()) "dc-settings-$([guid]::NewGuid()).json"
-    try {
-      ($settings | ConvertTo-Json) | Set-Content -Path $tmp -Encoding utf8
-      az webapp config appsettings set --name $AppName --resource-group $ResourceGroup --settings "@$tmp" --output none
-      if ($LASTEXITCODE -ne 0) { Fail 'Could not set app settings.' }
-      Write-Host ("    set: " + ($settings.Keys -join ', '))
-    } finally { Remove-Item $tmp -Force -ErrorAction SilentlyContinue }
-  }
+  Step 'Syncing secrets to Key Vault (see setup-secrets.ps1)'
+  & "$PSScriptRootsetup-secrets.ps1" -AppName $AppName -ResourceGroup $ResourceGroup
+  if ($LASTEXITCODE -ne 0) { Fail 'setup-secrets.ps1 failed.' }
 }
 
 # ---- deploy ----------------------------------------------------------------

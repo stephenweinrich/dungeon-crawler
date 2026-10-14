@@ -5,6 +5,7 @@
   "description": "Dungeon Crawler // The Show - browser dungeon crawler game",
   "scripts": {
     "start": "node server.js",
-    "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy.ps1"
+    "deploy": "powershell -NoProfile -ExecutionPolicy Bypass -File deploy.ps1",
+    "secrets": "powershell -NoProfile -ExecutionPolicy Bypass -File setup-secrets.ps1"
   }
 }
