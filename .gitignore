@@ -10,3 +10,10 @@ Thumbs.db
 *.log
 .vscode/
 .idea/
+
+# secrets - API keys etc. live here, never commit
+.env
+
+# editor safety copies written next to data files on each save
+data/*.bak
+data/feedback.json

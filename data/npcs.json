@@ -1,0 +1,93 @@
+{
+  "_comment": "Safe Room NPCs. 'tile' is the Safe Room map character the NPC stands on (see data/saferoom.json); 'chat' is the CSS colour key for their Chat lines (.chat-<name>); 'lines' are what they say when Carl steps on their tile or presses U. 'image' is the card art, 'portrait' the optional Guide portrait.",
+  "npcs": [
+    {
+      "id": "bautista",
+      "name": "Bautista",
+      "tile": "1",
+      "chat": "bautista",
+      "icon": "🛒",
+      "role": "Shopkeeper",
+      "image": "assets/cards/shop-keeper.png",
+      "description": "Runs the Safe Room shop: a knee-high slab of ex-pro-wrestler behind a counter of supplies, with a permanent scowl. Press U on his tile to trade — BUY tab for gear, SELL tab to dump loot. Every price is a haggle: he quotes a number, then a LUCK roll decides what Carl actually pays or pockets (a crit robs him blind, a fumble gets you fleeced).",
+      "lines": [
+        "Shop's open. Press U. BUY tab, SELL tab, and don't argue the quote — that's what the haggle's for.",
+        "You want gear or you want to unload junk? Either way it's U, and either way I get my cut.",
+        "Every price is a negotiation, pal. Bring your LUCK and press U."
+      ]
+    },
+    {
+      "id": "tiatha",
+      "name": "Mistress Tiatha",
+      "tile": "2",
+      "chat": "tiatha",
+      "icon": "✨",
+      "role": "Spell Master",
+      "image": "assets/cards/spell-master.png",
+      "description": "The Safe Room's Spell Master — an ageless, impatient elf who deals in magic she doesn't think you're ready for. Press U on her tile to buy spells.",
+      "lines": [
+        "The spell trade is open. Stand on my mark, press U, and do not haggle.",
+        "One spell on the shelf and it is already more than you can handle. Press U to look.",
+        "Gold for words, Crawler. Press U on my tile when you are ready to spend."
+      ]
+    },
+    {
+      "id": "hekla",
+      "name": "Hekla",
+      "tile": "3",
+      "chat": "hekla",
+      "icon": "🪓",
+      "role": "Guild Master",
+      "image": "assets/cards/guild-master.png",
+      "description": "The Safe Room's Guild Master: a scarred mountain of a warrior who turns stat points into muscle. Stand on her tile and press U to train — spend your banked points to raise STR, DEX, CON or LUCK by 1 apiece. There's no cap and no refund.",
+      "lines": [
+        "Guild's open for business, Crawler. Stand on my mark and press U — I'll turn those banked points into muscle.",
+        "You've bled, you've levelled. Bring the points here: press U and we'll put them where they'll do some good.",
+        "Training hall's running. Press U on my tile whenever you've got points to spend — no cap on how far you push it."
+      ]
+    },
+    {
+      "id": "princess-donut",
+      "name": "Princess Donut",
+      "tile": "4",
+      "chat": "donut",
+      "icon": "👑",
+      "role": "Combat partner",
+      "image": "assets/cards/princess-donut.png",
+      "portrait": "assets/images/donut-portrait.png",
+      "description": "Carl's cat and combat partner. A pampered, award-winning Persian with a sharp tongue and sharper claws, she pulls more than her weight in a fight — and keeps up a running commentary from the sidelines, in Chat. (Her spoken lines are scripted in the game code, not here.)",
+      "lines": []
+    },
+    {
+      "id": "mordecai",
+      "name": "Mordecai",
+      "tile": "5",
+      "chat": "mordecai",
+      "icon": "🎩",
+      "role": "System guide",
+      "image": "assets/cards/system-guide.png",
+      "portrait": "assets/images/mordecai-portrait.png",
+      "description": "Your System-appointed guide. He handles your listings, feeds you advice through the Guide Book, and is the only friendly voice down here — though \"friendly\" comes with plenty of dry commentary.",
+      "lines": [
+        "You again. Press U and I'll walk you through whatever you've forgotten.",
+        "Guide Book's open whenever you are — press U. Try to retain it this time.",
+        "Everything you need to survive is one button away. It's U. It's always U."
+      ]
+    },
+    {
+      "id": "chris",
+      "name": "Chris the Bopca",
+      "tile": "9",
+      "chat": "chris",
+      "icon": "🐾",
+      "role": "Safe Room keeper",
+      "image": "assets/cards/bopca-keeper.png",
+      "description": "The Bopca who keeps the Safe Room's stairs down and its floors clean. Unimpressed by crawlers.",
+      "lines": [
+        "Rest, restock, whatever. Just don't track dungeon in on my floor.",
+        "This is a safe room. Keep it that way and we'll get along.",
+        "Bunk's there, locker's there, stairs down are there. Don't dawdle."
+      ]
+    }
+  ]
+}

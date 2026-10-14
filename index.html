@@ -147,9 +147,11 @@
           <button id="menu-btn" class="topbar-exit" type="button" title="Open menu (Ctrl+M)">☰ MENU</button>
           <button id="guide-quick-btn" class="topbar-exit" type="button" title="Open guide book (Ctrl+G)">📖 GUIDE BOOK</button>
           <button id="quick-save-btn" class="topbar-exit" type="button" title="Quick save to the active slot (Ctrl+S)" hidden>💾 QUICK SAVE</button>
+          <button id="bug-report-btn" class="topbar-exit" type="button" title="Report a bug">🐞 BUG REPORT</button>
+          <button id="feature-request-btn" class="topbar-exit" type="button" title="Suggest a new feature">💡 FEATURE REQUEST</button>
         </div>
         <span class="topbar-floor">FLOOR 1</span>
-        <span class="topbar-brand">DUNGEON CRAWLER</span>
+        <span class="topbar-brand">DUNG<span id="admin-secret-e">E</span>ON CRAWLER</span>
       </div>
 
       <!-- ---------- left sidebar: Carl ---------- -->
@@ -185,6 +187,14 @@
 
         <p class="panel-heading">INVENTORY</p>
         <div class="inventory-grid" id="inventory-grid">
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
+          <div class="inv-slot"></div>
           <div class="inv-slot"></div>
           <div class="inv-slot"></div>
           <div class="inv-slot"></div>
@@ -245,6 +255,11 @@
                        onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
                   <div class="combatant-fallback"><span class="placeholder-icon">&#129492;</span></div>
                   <span class="combatant-float" id="combat-carl-float"></span>
+                </div>
+                <div class="combatant-ally-portrait" id="combat-donut-portrait" hidden title="Princess Donut">
+                  <img id="combat-donut-img" src="assets/cards/princess-donut.png" alt="Princess Donut"
+                       onerror="this.style.display='none'; this.parentElement.classList.add('img-missing');">
+                  <div class="combatant-fallback"><span class="placeholder-icon">&#128568;</span></div>
                 </div>
                 <p class="combatant-name">CARL</p>
                 <div class="combat-bar hp">
@@ -456,6 +471,9 @@
           <button id="load-game-btn" class="dungeon-button menu-btn-item" type="button" title="Ctrl+L">
             <span class="btn-text">LOAD GAME</span>
           </button>
+          <button id="sound-btn" class="dungeon-button menu-btn-item" type="button">
+            <span class="btn-text">SOUND</span>
+          </button>
           <button id="guide-btn" class="dungeon-button menu-btn-item" type="button" title="Ctrl+G">
             <span class="btn-text">GUIDE BOOK</span>
           </button>
@@ -487,6 +505,41 @@
         <div class="save-slot-list" id="save-slot-list"></div>
 
         <p id="saveload-status" class="menu-status"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       SOUND SETTINGS - toggle music and sound effects on/off.
+       Both default on; preference persists in localStorage.
+       =========================================================== -->
+  <div class="sound-overlay" id="sound-overlay">
+    <div class="dungeon-frame sound-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <button id="sound-close-btn" class="menu-close" type="button" title="Close">✕</button>
+
+      <div class="content">
+        <p class="show-kicker">◆ THE DUNGEON HAS EARS ◆</p>
+        <h2 class="menu-heading">SOUND</h2>
+
+        <div class="sound-options">
+          <div class="sound-option-row">
+            <span class="sound-option-label">Music</span>
+            <button id="music-toggle-btn" class="sound-toggle-btn" type="button">
+              <span class="btn-text">ON</span>
+            </button>
+          </div>
+          <div class="sound-option-row">
+            <span class="sound-option-label">Sound Effects</span>
+            <button id="sfx-toggle-btn" class="sound-toggle-btn" type="button">
+              <span class="btn-text">ON</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -688,11 +741,11 @@
             <section class="guide-panel" data-panel="inventory">
               <p class="panel-heading">INVENTORY</p>
               <ul class="guide-list">
-                <li>Your <strong>bag</strong> is eight slots, down the left side. More open up as Carl levels (later).</li>
+                <li>Your <strong>bag</strong> is sixteen slots, down the left side. Consumables stack, so they go further.</li>
                 <li>Click a slot to <strong>select</strong> it &mdash; the item's card shows in the Encounters panel. Click it again to deselect.</li>
                 <li>Press <strong>U</strong> (or the Use action) on a selected item to use it. Every item does something different &mdash; a <strong>Health Potion</strong> restores 25% Max HP, a <strong>Torch</strong> widens your sight, a <strong>Loot Box</strong> cracks open for gold. The full list is in the <strong>Items</strong> tab as you find them.</li>
                 <li>Items work <strong>during a fight</strong> too &mdash; select one and press U &mdash; but using it spends Carl's turn, and the mob still gets its swing. <strong>Dynamite</strong> is the offensive one: a flat 2d10 (up to 20) that ignores armour &mdash; every <strong>Crawlspace Goblin</strong> drops a stick or two.</li>
-                <li>Every kill drops a <strong>Loot Box</strong> straight into the bag. If all eight slots are full it's <strong>lost for good</strong>, so don't let them pile up.</li>
+                <li>Every kill drops a <strong>Loot Box</strong> straight into the bag. If all sixteen slots are full it's <strong>lost for good</strong>, so don't let them pile up.</li>
                 <li><strong>Storage &mdash; the Safe Room footlocker.</strong> Stand on Carl's footlocker (in his room) and press <strong>U</strong> for a 16-slot chest. Click an item to move it between bag and footlocker; anything you leave there is safe, out of the way when loot drops, and kept in your save file.</li>
                 <li>The <strong>Spell Master</strong> (Tiatha, next door) sells spells &mdash; press <strong>U</strong> on her tile for a one-use <strong>Fireball</strong> casting (3d8+2 fire, 25 SP).</li>
                 <li>The <strong>Shop</strong> (Bautista) buys and sells &mdash; press <strong>U</strong> for BUY / SELL tabs. He buys gear at roughly an item's value, sells it at a markup, and every deal is haggled on a <strong>LUCK</strong> roll: the listed price is only his opening quote.</li>
@@ -811,7 +864,7 @@
 
   <!-- ===========================================================
        STASH MODAL - Carl's footlocker in the Safe Room. Two grids:
-       his 8-slot bag (left) and the 16-slot footlocker (right).
+       his 16-slot bag (left) and the 16-slot footlocker (right).
        Click an item to move it across. Driven by js/main.js.
        =========================================================== -->
   <div class="stash-overlay" id="stash-overlay">
@@ -851,6 +904,103 @@
        left in the dungeon with no pickup, ever. This modal is the
        guard on the Drop action / X key. Driven by js/main.js.
        =========================================================== -->
+  <!-- ===========================================================
+       ADMIN DATA EDITOR - hidden: opened by clicking the E in the
+       top-bar title. Password-gated by the server. Edits
+       data/items.json, data/mobs.json and data/npcs.json and uploads
+       PNGs into assets/. Driven by js/admin.js.
+       =========================================================== -->
+  <div class="admin-overlay" id="admin-overlay">
+    <div class="admin-login" id="admin-login">
+      <p class="admin-login-title">&#9670; ADMIN &#9670;</p>
+      <input id="admin-password" class="admin-input" type="password" placeholder="Password" autocomplete="off">
+      <p class="admin-status" id="admin-login-status" role="status"></p>
+      <div class="admin-row">
+        <button type="button" class="admin-btn" id="admin-login-cancel">CANCEL</button>
+        <button type="button" class="admin-btn admin-btn-primary" id="admin-login-submit">ENTER</button>
+      </div>
+    </div>
+
+    <div class="admin-shell" id="admin-shell" hidden>
+      <nav class="admin-menu">
+        <p class="admin-menu-title">EDITOR</p>
+        <button type="button" class="admin-menu-btn" data-kind="items">&#128230; ITEMS</button>
+        <button type="button" class="admin-menu-btn" data-kind="mobs">&#128128; MOBS</button>
+        <button type="button" class="admin-menu-btn" data-kind="npcs">&#129489; NPCS</button>
+        <button type="button" class="admin-menu-btn" data-kind="levels">&#128506; LEVELS</button>
+        <button type="button" class="admin-menu-btn" data-kind="bug">&#128030; BUG REPORTS</button>
+        <button type="button" class="admin-menu-btn" data-kind="feature">&#128161; FEATURE REQUESTS</button>
+        <button type="button" class="admin-menu-btn admin-menu-exit" id="admin-exit-btn">&#10006; EXIT EDITOR</button>
+      </nav>
+
+      <section class="admin-list-pane">
+        <div class="admin-pane-head">
+          <span id="admin-list-title">Pick a category</span>
+          <span class="admin-row">
+            <button type="button" class="admin-btn" id="admin-clone-btn" title="Copy the selected entry into a new one" hidden>CLONE</button>
+            <button type="button" class="admin-btn" id="admin-new-btn" hidden>+ NEW</button>
+          </span>
+        </div>
+        <input id="admin-search" class="admin-input" type="search" placeholder="Filter&hellip;" autocomplete="off">
+        <div class="admin-list" id="admin-list"></div>
+      </section>
+
+      <section class="admin-form-pane">
+        <div class="admin-pane-head">
+          <span id="admin-form-title">Nothing selected</span>
+          <span class="admin-row">
+            <button type="button" class="admin-btn admin-btn-danger" id="admin-delete-btn" hidden>DELETE</button>
+            <button type="button" class="admin-btn admin-btn-primary" id="admin-save-btn" hidden>SAVE</button>
+          </span>
+        </div>
+        <p class="admin-status" id="admin-status" role="status"></p>
+        <div class="admin-form" id="admin-form"></div>
+      </section>
+
+      <section class="admin-level-pane" id="admin-level-pane"></section>
+    </div>
+  </div>
+
+  <!-- ===========================================================
+       FEEDBACK - one modal serves both the Bug Report and Feature
+       Request top-bar buttons. Posts to /api/feedback, which appends
+       to data/feedback.json. Driven by js/main.js.
+       =========================================================== -->
+  <div class="feedback-overlay" id="feedback-overlay">
+    <div class="dungeon-frame feedback-frame">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+
+      <div class="content feedback-content">
+        <p class="show-kicker" id="feedback-kicker">&#9670; BUG REPORT &#9670;</p>
+        <h2 class="menu-heading" id="feedback-heading">REPORT A BUG</h2>
+
+        <label class="feedback-label" for="feedback-title">TITLE</label>
+        <input id="feedback-title" class="feedback-input" type="text" maxlength="120" autocomplete="off">
+
+        <label class="feedback-label" for="feedback-desc" id="feedback-desc-label">WHAT HAPPENED?</label>
+        <textarea id="feedback-desc" class="feedback-input feedback-textarea" rows="6" maxlength="4000"></textarea>
+
+        <p class="feedback-status" id="feedback-status" role="status"></p>
+
+        <div class="dropconfirm-buttons">
+          <button id="feedback-cancel-btn" class="dungeon-button" type="button">
+            <span class="btn-bracket">&#9654;</span>
+            <span class="btn-text">CANCEL</span>
+            <span class="btn-bracket">&#9664;</span>
+          </button>
+          <button id="feedback-submit-btn" class="dungeon-button" type="button">
+            <span class="btn-bracket">&#9654;</span>
+            <span class="btn-text">SUBMIT</span>
+            <span class="btn-bracket">&#9664;</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="dropconfirm-overlay" id="dropconfirm-overlay">
     <div class="dungeon-frame dropconfirm-frame">
       <div class="corner corner-tl"></div>
@@ -981,5 +1131,7 @@
   </div>
 
   <script src="js/main.js"></script>
+  <script src="js/admin.js"></script>
+  <script src="js/admin-levels.js"></script>
 </body>
 </html>

@@ -6,6 +6,9 @@ function showScreen(screenClass) {
   document.querySelectorAll('.screen').forEach((el) => {
     el.classList.toggle('active', el.classList.contains(screenClass));
   });
+  // dungeon/boss music plays only while the game screen (map + combat) is up
+  if (screenClass === 'game-screen') updateAreaMusic();
+  else stopMusic();
 }
 
 const startBtn = document.getElementById('start-btn');
@@ -454,7 +457,7 @@ function deselectInvItem() {
 // line for their on / off state.
 function invTooltip(def, active) {
   if (!def) return '';
-  if (def.toggle) return (active ? def.tooltipOn : def.tooltipOff) || def.name || '';
+  if (def.toggle) return (active ? def.tooltipOn : def.tooltipOff) || def.tooltip || def.name || '';
   return def.tooltip || def.description || def.name || '';
 }
 
@@ -472,6 +475,7 @@ function renderInventory(items) {
       delete slot.dataset.itemName;
       delete slot.dataset.icon;
       delete slot.dataset.active;
+      delete slot.dataset.count;
       return;
     }
     const def = (itemCatalog && item.id) ? itemCatalog[item.id] : null;
@@ -493,6 +497,14 @@ function renderInventory(items) {
     } else {
       slot.textContent = item.icon || '';
     }
+
+    const count = Math.max(1, Number(item.count) || 1);
+    if (count > 1) {
+      slot.dataset.count = String(count);
+      slot.insertAdjacentHTML('beforeend', `<span class="inv-slot-count">${count}</span>`);
+    } else {
+      delete slot.dataset.count;
+    }
   });
 }
 
@@ -506,12 +518,82 @@ function readInventory() {
       };
       if (slot.dataset.itemId) entry.id = slot.dataset.itemId;
       if (slot.dataset.active === '1') entry.active = true;
+      if (Number(slot.dataset.count) > 1) entry.count = Number(slot.dataset.count);
       return entry;
     });
 }
 
-// wipe one slot and re-lay the inventory (compacts, clears selection)
-function removeInvSlot(slot) {
+// Consumables stack up to MAX_STACK per slot; toggle gear (Torch, armor)
+// stays one per slot. Unknown items (no catalog def) don't stack.
+const MAX_STACK = 99;
+function isStackable(def) {
+  return !!def && !def.toggle && !isEquippable(def);
+}
+
+// Wearable gear: anything marked toggle, or a permanent item whose effect
+// gives Defense (so a new armor piece made in the editor works without a
+// code change). Equippables don't stack and use the generic equip toggle.
+function isEquippable(def) {
+  if (!def) return false;
+  if (def.toggle) return true;
+  return def.type === 'permanent' && !!def.effect && Number(def.effect.defense) > 0;
+}
+
+// Merge `entry` (with optional .count) into `list`: top up existing stacks
+// of the same item first, then open new slots while list.length < maxSlots.
+// Returns how many units did NOT fit.
+function pushStacked(list, entry, maxSlots) {
+  let left = Math.max(1, Number(entry.count) || 1);
+  const def = (itemCatalog && entry.id) ? itemCatalog[entry.id] : null;
+  const stackable = isStackable(def);
+  if (stackable) {
+    for (const it of list) {
+      if (left <= 0) break;
+      if (it.id !== entry.id) continue;
+      const have = Math.max(1, Number(it.count) || 1);
+      const add = Math.min(left, MAX_STACK - have);
+      if (add > 0) { it.count = have + add; left -= add; }
+    }
+  }
+  while (left > 0 && list.length < maxSlots) {
+    const n = stackable ? Math.min(left, MAX_STACK) : 1;
+    const { count, ...rest } = entry;
+    list.push(n > 1 ? { ...rest, count: n } : { ...rest });
+    left -= n;
+  }
+  return left;
+}
+
+// Re-stack a saved item list (copies entries; toggle gear is left as-is).
+function mergeStacks(entries) {
+  const out = [];
+  entries.forEach((it) => { pushStacked(out, it, Infinity); });
+  return out;
+}
+
+// true if one more of this item would fit (stack room or a free slot)
+function canAddToInventory(itemDef) {
+  const slotCount = inventoryGridEl.querySelectorAll('.inv-slot').length;
+  return pushStacked(readInventory(), { id: itemDef.id }, slotCount) === 0;
+}
+
+// Consume one of the slot's item — a stack just loses one (and stays
+// selected so Carl can keep using it); the slot clears when the last goes.
+// Pass all=true to wipe the whole stack (Drop). Re-lays the inventory.
+function removeInvSlot(slot, all = false) {
+  const slots = Array.from(inventoryGridEl.querySelectorAll('.inv-slot'));
+  const idx = slots.indexOf(slot);
+  const count = Number(slot.dataset.count) || 1;
+  if (!all && count > 1) {
+    const items = readInventory();
+    items[slots.slice(0, idx).filter((s) => s.dataset.filled).length].count = count - 1;
+    renderInventory(items);
+    const again = slots[idx];
+    selectedInvSlot = again;
+    again.classList.add('selected');
+    updateEncounter();
+    return;
+  }
   slot.innerHTML = '';
   slot.removeAttribute('title');
   slot.classList.remove('active-item');
@@ -520,18 +602,20 @@ function removeInvSlot(slot) {
   delete slot.dataset.itemName;
   delete slot.dataset.icon;
   delete slot.dataset.active;
+  delete slot.dataset.count;
   renderInventory(readInventory());
   updateEncounter();
 }
 
-// add an item (catalog def) to the first free inventory slot. Returns
-// false if every slot is full — the item is then lost for good.
+// add an item (catalog def) to an existing stack or the first free slot.
+// Returns false if there's no stack room and every slot is full — the
+// item is then lost for good.
 function addToInventory(itemDef) {
   if (!itemDef) return false;
   const slotCount = inventoryGridEl.querySelectorAll('.inv-slot').length;
   const items = readInventory();
-  if (items.length >= slotCount) return false;
-  items.push({ id: itemDef.id, icon: itemDef.icon, name: itemDef.name });
+  const left = pushStacked(items, { id: itemDef.id, icon: itemDef.icon, name: itemDef.name }, slotCount);
+  if (left > 0) return false;
   renderInventory(items);
   recordItemDiscovered(itemDef); // any item Carl holds shows in the Guide
   return true;
@@ -809,6 +893,138 @@ loadGameBtn.addEventListener('click', () => {
 guideBtn.addEventListener('click', () => {
   closeMenu();
   openGuide();
+});
+
+// =======================================================
+// Sound settings (Music / Sound Effects on-off, opened from the
+// popup menu). Both default on; the choice persists in
+// localStorage. Sound effects aren't wired to anything yet, but
+// the toggle and stored preference are ready for when they land.
+// =======================================================
+
+const MUSIC_ON_KEY = 'dungeon-crawler-music-on';
+const SFX_ON_KEY = 'dungeon-crawler-sfx-on';
+let musicOn = true;
+let sfxOn = true;
+try {
+  const storedMusic = localStorage.getItem(MUSIC_ON_KEY);
+  if (storedMusic !== null) musicOn = storedMusic === '1';
+  const storedSfx = localStorage.getItem(SFX_ON_KEY);
+  if (storedSfx !== null) sfxOn = storedSfx === '1';
+} catch (e) { /* private mode */ }
+
+const dungeonMusic = new Audio('music/Depths_of_the_Forgotten_Keep_2026-09-24T230758.mp3');
+dungeonMusic.loop = true;
+dungeonMusic.volume = 0.45;
+
+const bossMusic = new Audio('music/Lair_of_the_Iron_Behemoth_2026-09-24T231044.mp3');
+bossMusic.loop = true;
+bossMusic.volume = 0.45;
+
+// which track *should* be playing for the area Carl is standing in —
+// null (nothing), 'dungeon', or 'boss'. Kept separate from musicOn so
+// toggling music back on resumes the right track without recomputing it.
+let activeTrack = null;
+
+function trackAudio(track) {
+  return track === 'boss' ? bossMusic : track === 'dungeon' ? dungeonMusic : null;
+}
+
+// switches which track is queued up for the current area. A no-op if
+// we're already on that track — called on every step, so it must not
+// restart audio that's already playing.
+function playTrack(track) {
+  if (track === activeTrack) return;
+  dungeonMusic.pause();
+  bossMusic.pause();
+  activeTrack = track;
+  if (!musicOn) return;
+  const audio = trackAudio(track);
+  if (audio) audio.play().catch(() => { /* blocked without a user gesture yet — a later toggle/nav retries */ });
+}
+
+function stopMusic() {
+  activeTrack = null;
+  dungeonMusic.pause();
+  bossMusic.pause();
+}
+
+// applies a musicOn flip to whichever track is already queued up,
+// without touching which track that is.
+function syncMusicPlayback() {
+  const audio = trackAudio(activeTrack);
+  if (!audio) return;
+  if (musicOn) audio.play().catch(() => { /* blocked without a user gesture yet */ });
+  else audio.pause();
+}
+
+// the boss room ('B') and the square just outside its sealed door
+// ('D', from any side Carl can stand on) both cue the boss track.
+function isAdjacentToBossDoor(x, y) {
+  return [[0, -1], [0, 1], [-1, 0], [1, 0]].some(([dx, dy]) => mapTileAt(x + dx, y + dy) === 'D');
+}
+
+function currentAreaTrack() {
+  if (!currentLevelMap || !carlPos) return 'dungeon';
+  const ch = mapTileAt(carlPos.x, carlPos.y);
+  if (ch === 'B' || ch === 'D' || isAdjacentToBossDoor(carlPos.x, carlPos.y)) return 'boss';
+  return 'dungeon';
+}
+
+function updateAreaMusic() {
+  playTrack(currentAreaTrack());
+}
+
+const soundBtn = document.getElementById('sound-btn');
+const soundOverlay = document.getElementById('sound-overlay');
+const soundCloseBtn = document.getElementById('sound-close-btn');
+const musicToggleBtn = document.getElementById('music-toggle-btn');
+const sfxToggleBtn = document.getElementById('sfx-toggle-btn');
+
+function syncSoundToggleBtns() {
+  musicToggleBtn.classList.toggle('on', musicOn);
+  musicToggleBtn.querySelector('.btn-text').textContent = musicOn ? 'ON' : 'OFF';
+  sfxToggleBtn.classList.toggle('on', sfxOn);
+  sfxToggleBtn.querySelector('.btn-text').textContent = sfxOn ? 'ON' : 'OFF';
+}
+syncSoundToggleBtns();
+
+function openSound() {
+  syncSoundToggleBtns();
+  soundOverlay.classList.add('active');
+}
+function closeSound() {
+  soundOverlay.classList.remove('active');
+}
+
+soundBtn.addEventListener('click', () => {
+  closeMenu();
+  openSound();
+});
+
+musicToggleBtn.addEventListener('click', () => {
+  musicOn = !musicOn;
+  try { localStorage.setItem(MUSIC_ON_KEY, musicOn ? '1' : '0'); } catch (e) { /* ignore */ }
+  syncSoundToggleBtns();
+  syncMusicPlayback();
+});
+
+sfxToggleBtn.addEventListener('click', () => {
+  sfxOn = !sfxOn;
+  try { localStorage.setItem(SFX_ON_KEY, sfxOn ? '1' : '0'); } catch (e) { /* ignore */ }
+  syncSoundToggleBtns();
+});
+
+soundCloseBtn.addEventListener('click', closeSound);
+
+soundOverlay.addEventListener('click', (event) => {
+  if (event.target === soundOverlay) closeSound();
+});
+
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && soundOverlay.classList.contains('active')) {
+    closeSound();
+  }
 });
 
 // =======================================================
@@ -1153,8 +1369,8 @@ async function loadSlot(slotNum) {
     await ensureItemCatalog();
     closeBattle(); // don't carry a fight across a load
     inSafeRoom = false; safeRoomReturn = null; // never resume inside the safe room
-    stashItems = Array.isArray(data.stash) ? data.stash.map((it) => ({ ...it })) : [];
-    renderInventory(data.inventory || []);
+    stashItems = mergeStacks(Array.isArray(data.stash) ? data.stash : []);
+    renderInventory(mergeStacks(data.inventory || [])); // older saves hold unstacked duplicates
     renderSystemLog(data.systemLog || []);
     renderChatLog(data.chat || []);
 
@@ -1225,7 +1441,13 @@ async function ensureItemCatalog() {
     const res = await fetch('data/items.json');
     if (!res.ok) throw new Error('no items.json');
     const data = await res.json();
-    (data.items || []).forEach((it) => { itemCatalog[it.id] = it; });
+    (data.items || []).forEach((it) => {
+      // be forgiving of an effect saved as JSON text (e.g. typed into a text field)
+      if (typeof it.effect === 'string') {
+        try { it.effect = JSON.parse(it.effect); } catch (e) { it.effect = {}; }
+      }
+      itemCatalog[it.id] = it;
+    });
   } catch (err) {
     /* item catalog unavailable */
   }
@@ -1416,6 +1638,10 @@ function activateOpenDoorAction() {
     enterSafeRoom();
     return;
   }
+  if (carlPos && stairsAt(carlPos.x, carlPos.y)) {
+    descendStairs();
+    return;
+  }
   openAdjacentDoors();
 }
 
@@ -1453,6 +1679,7 @@ const TILE_ENCOUNTERS = {
   door: { name: 'Open Doorway', badge: 'threshold', image: 'assets/cards/open-doorway.png', icon: '🚪' },
   closedDoor: { name: 'Closed Door', badge: 'threshold', image: 'assets/cards/closed-doorway.png', icon: '🚪' },
   saferoom: { name: 'Safe Room', badge: 'sanctuary', image: 'assets/cards/safe-room.png', icon: '🏠' },
+  stairs: { name: 'Stairwell Down', badge: 'descent', image: '', icon: '🪜' },
   empty: { name: 'Empty Passage', badge: 'terrain', image: 'assets/cards/empty-passage.png', icon: '·' },
 };
 
@@ -1523,6 +1750,7 @@ function encounterForCarl() {
     if (adj) return mobEncounterCard(adj);
   }
   const ch = mapTileAt(carlPos.x, carlPos.y);
+  if (stairsAt(carlPos.x, carlPos.y)) return TILE_ENCOUNTERS.stairs;
   if (ch === 'E') return TILE_ENCOUNTERS.entrance;
   if (ch === 'S') return TILE_ENCOUNTERS.saferoom;
   if (isDoorTile(ch)) return TILE_ENCOUNTERS.door;
@@ -1657,6 +1885,12 @@ function placeCarl() {
 // everything else is blacked out.
 function applyFog() {
   if (!currentLevelMap || !carlPos) return;
+  // the safe room is always fully lit — the torch (or anything else that
+  // repaints fog) must never veil its cells
+  if (inSafeRoom) {
+    cellEls.forEach((el) => { if (el) el.classList.remove('fog-hidden', 'fog-explored'); });
+    return;
+  }
   const { cols, rows } = currentLevelMap.grid;
   const radius = currentVisionRadius();
   for (let y = 0; y < rows; y += 1) {
@@ -1774,8 +2008,77 @@ function renderDungeonMap(map, restore) {
   mapViewport.innerHTML = '';
   mapViewport.appendChild(grid);
   placeCarl();
+  revealStairs(false); // a floor loaded with its boss already dead
   applyFog();
+  updateAreaMusic();
   updateEncounter();
+  const floorLabel = document.querySelector('.topbar-floor');
+  if (floorLabel) floorLabel.textContent = `FLOOR ${map.level}`;
+}
+
+// --- boss stairwell ---------------------------------------------------
+// Once every boss on the floor is dead, a stairwell opens where the (first)
+// boss stood — or at the map's optional "stairs": {x, y}. Press O (or U) on
+// it to go down a floor. Nothing extra is saved: it's derived from
+// killedMobs, so a loaded game shows it too.
+function bossMobRefs() {
+  return (currentLevelMap && currentLevelMap.mobs ? currentLevelMap.mobs : []).filter((m) => {
+    const def = mobCatalog && mobCatalog[m.id];
+    return m.boss || (def && def.boss);
+  });
+}
+
+function stairsCell() {
+  if (inSafeRoom || !currentLevelMap) return null;
+  const bosses = bossMobRefs();
+  if (!bosses.length) return null;
+  if (!bosses.every((m) => killedMobs.has(`${m.x},${m.y}`))) return null;
+  const at = currentLevelMap.stairs || bosses[0];
+  return { x: at.x, y: at.y };
+}
+
+function stairsAt(x, y) {
+  const s = stairsCell();
+  return !!s && s.x === x && s.y === y;
+}
+
+// draw the stairwell on the map once it's open (announce=true on the kill)
+function revealStairs(announce) {
+  const s = stairsCell();
+  if (!s) return;
+  const cell = cellElAt(s.x, s.y);
+  if (!cell || cell.classList.contains('t-stairs')) return;
+  cell.classList.add('t-stairs');
+  cell.title = 'Stairwell down';
+  if (announce) {
+    appendSystemLog('The floor of the boss room splits and a stairwell grinds open. Press O on it to descend.', 'loot');
+  }
+}
+
+let descending = false;
+async function descendStairs() {
+  if (descending || battle || inSafeRoom || !currentLevelMap || !carlPos) return;
+  if (!stairsAt(carlPos.x, carlPos.y)) return;
+  const next = currentLevelMap.level + 1;
+  descending = true;
+  try {
+    // look before leaping: ensureLevelMap would blank the map if the floor is missing
+    let nextMap = null;
+    try {
+      const res = await fetch(`data/map-level${next}.json`, { cache: 'no-store' });
+      if (res.ok) nextMap = await res.json();
+    } catch (err) { /* treated as missing */ }
+    if (!nextMap) {
+      appendSystemLog(`The stairwell drops into darkness, but Floor ${next} isn't ready yet. The System is still building it.`, 'danger');
+      return;
+    }
+    appendSystemLog(`Carl takes the stairs down to Floor ${next}.`, 'loot');
+    deselectInvItem();
+    currentLevelMap = null; // force a fresh render of the new floor
+    await ensureLevelMap(next, null);
+  } finally {
+    descending = false;
+  }
 }
 
 async function ensureLevelMap(level = 1, restore = null) {
@@ -1824,7 +2127,7 @@ function dungeonInputActive() {
   if (!game || !game.classList.contains('active')) return false;
   if (battle) return false;
   if (document.querySelector(
-    '.menu-overlay.active, .saveload-overlay.active, .guide-overlay.active, .statalloc-overlay.active, .stash-overlay.active, .map-shop.active, .dropconfirm-overlay.active',
+    '.menu-overlay.active, .saveload-overlay.active, .guide-overlay.active, .statalloc-overlay.active, .stash-overlay.active, .map-shop.active, .dropconfirm-overlay.active, .feedback-overlay.active, .admin-overlay.active',
   )) return false;
   return true;
 }
@@ -1883,6 +2186,7 @@ function tryMoveCarl(dx, dy) {
   carlPos = { x: nx, y: ny };
   placeCarl();
   applyFog();
+  updateAreaMusic();
   if (ch === 'B' && !bossRoomEntered) {
     bossRoomEntered = true;
     const bossName = (currentLevelMap.bossRoom && currentLevelMap.bossRoom.name) || 'the boss room';
@@ -1984,6 +2288,8 @@ const combatCarlImg = document.getElementById('combat-carl-img');
 const combatMobImg = document.getElementById('combat-mob-img');
 const combatCarlPortraitEl = document.getElementById('combat-carl-portrait');
 const combatMobPortraitEl = document.getElementById('combat-mob-portrait');
+const combatDonutPortraitEl = document.getElementById('combat-donut-portrait');
+const combatDonutImg = document.getElementById('combat-donut-img');
 const combatCarlFloatEl = document.getElementById('combat-carl-float');
 const combatMobFloatEl = document.getElementById('combat-mob-float');
 const combatCarlHpFill = document.getElementById('combat-carl-hp-fill');
@@ -2031,14 +2337,57 @@ function rollDice(n, sides) {
 }
 const sgn = (n) => (n >= 0 ? `+${n}` : `${n}`);
 
+// true if another slot holding the same item is already toggled on
+function alreadyEquipped(slot) {
+  return Array.from(inventoryGridEl.querySelectorAll('.inv-slot'))
+    .some((s) => s !== slot && s.dataset.itemId === slot.dataset.itemId && s.dataset.active === '1');
+}
+
+// Wear / take off a piece of gear (toggle on the slot). Shared by Toenail
+// Armor and by any data-defined equippable (see isEquippable). Gear that
+// shares an `equipSlot` (e.g. "head") swaps: wearing a new one removes the
+// old. Updates a live fight's Defense straight away.
+function toggleEquipment(def, slot, msgs) {
+  const nowOn = slot.dataset.active !== '1';
+  if (nowOn && alreadyEquipped(slot)) {
+    appendSystemLog(`Carl is already wearing a ${def.name}. Wearing two would just be showing off.`);
+    return;
+  }
+  if (nowOn && def.equipSlot) {
+    inventoryGridEl.querySelectorAll('.inv-slot').forEach((s) => {
+      if (s === slot || s.dataset.active !== '1') return;
+      const other = (itemCatalog && s.dataset.itemId) ? itemCatalog[s.dataset.itemId] : null;
+      if (!other || other.equipSlot !== def.equipSlot) return;
+      delete s.dataset.active;
+      s.classList.remove('active-item');
+      s.title = invTooltip(other, false);
+      appendSystemLog(`Carl takes off the ${other.name} to make room.`);
+    });
+  }
+  if (nowOn) slot.dataset.active = '1';
+  else delete slot.dataset.active;
+  slot.classList.toggle('active-item', nowOn);
+  slot.title = invTooltip(def, nowOn);
+  if (battle) battle.carl.defense = carlArmorBonus(); // live fight feels it immediately
+  const bonus = (def.effect && def.effect.defense) || 0;
+  appendSystemLog(nowOn
+    ? (msgs && msgs.on ? msgs.on(bonus) : `Carl puts on the ${def.name}. +${bonus} Defense.`)
+    : (msgs && msgs.off ? msgs.off : `Carl takes off the ${def.name}. Defense bonus gone.`));
+}
+
 // sums the Defense bonus from any equipped (toggled-on) armor in the
 // bag — same "scan .inv-slot for an active toggle item" pattern as
 // currentVisionRadius() uses for the Torch. Currently just Toenail
 // Armor, but adds up fine if more armor pieces show up later.
+// Each item id counts once, even if several copies are somehow active
+// (e.g. an older save) — only one of a given piece can be worn.
 function carlArmorBonus() {
   let bonus = 0;
+  const seen = new Set();
   inventoryGridEl.querySelectorAll('.inv-slot').forEach((s) => {
     if (s.dataset.active !== '1') return;
+    if (seen.has(s.dataset.itemId)) return;
+    seen.add(s.dataset.itemId);
     const def = (itemCatalog && s.dataset.itemId) ? itemCatalog[s.dataset.itemId] : null;
     if (def && def.effect && def.effect.defense) bonus += Number(def.effect.defense) || 0;
   });
@@ -2062,6 +2411,18 @@ function carlSheet() {
     defense: carlArmorBonus(),
     dmgDie: 6, dmgDieCount: 1, dmgMod: Math.floor(str / 3),
     critMin: luck >= 15 ? 19 : 20,
+  };
+}
+// Princess Donut's boss-fight magic missile — no HP of her own (she can't
+// be hit), just a rolled attack that piles on right after Carl's FIGHT.
+function donutSheet() {
+  return {
+    name: 'Princess Donut',
+    toHit: 11,
+    dodge: 10,
+    defense: 0,
+    dmgDie: 4, dmgDieCount: 1, dmgMod: 2,
+    critMin: 20,
   };
 }
 function mobSheet(def) {
@@ -2377,6 +2738,7 @@ function openBattle(mobDef, mx, my) {
     cy: (typeof my === 'number') ? my : carlPos.y,
     carl: carlSheet(),
     mob: mobSheet(mobDef),
+    donutActive: !!mobDef.boss, // Princess Donut fights alongside Carl in boss battles only
     phase: 'carl',
     round: 1,
     carlDefending: false, // brace is live for the mob's next swing only
@@ -2385,6 +2747,7 @@ function openBattle(mobDef, mx, my) {
     over: false,
   };
   updateEncounter();  // pin the mob's card in the ENCOUNTERS panel
+  if (mobDef.boss) playTrack('boss'); // the fight itself is part of the boss's territory
 
   combatResultEl.hidden = true;
   combatResultEl.className = 'combat-result';
@@ -2407,6 +2770,11 @@ function openBattle(mobDef, mx, my) {
   if (combatDieEl) { combatDieEl.hidden = true; combatDieEl.className = 'combat-die'; }
   if (combatStampEl) combatStampEl.className = 'combat-stamp';
   if (combatVsEl) combatVsEl.classList.remove('rolling');
+  if (combatDonutPortraitEl) {
+    combatDonutPortraitEl.hidden = !battle.donutActive;
+    combatDonutPortraitEl.classList.remove('img-missing');
+  }
+  if (combatDonutImg && battle.donutActive) combatDonutImg.style.display = '';
   setCombatCallout('');
   setCombatRound(1);
 
@@ -2416,6 +2784,9 @@ function openBattle(mobDef, mx, my) {
   const vowel = /^[aeiou]/i.test(mobDef.name || '');
   combatLog(`Carl squares off against ${vowel ? 'an' : 'a'} ${mobDef.name}. No way out but through.`, 'l-turn');
   bark('intro');
+  if (battle.donutActive) {
+    combatLog('Princess Donut steps up beside Carl, claws crackling with arcane light.', 'l-turn');
+  }
   carlTurnUI();
 }
 
@@ -2491,8 +2862,38 @@ async function carlAct(kind) {
     if (battle.mob.hp <= 0) { endFight('win'); return; }
   }
 
+  if (battle.donutActive) {
+    await donutAct();
+    if (!battle) return;
+    if (battle.mob.hp <= 0) { endFight('win'); return; }
+  }
+
   if (!battle || battle.over) return;
   mobTurn();
+}
+
+// Princess Donut's magic missile — fires right after every Carl turn
+// (FIGHT, DEFEND, or using an item), in boss battles only. She has no HP
+// of her own and can't be targeted; this is purely a second rolled attack
+// piled onto the mob.
+async function donutAct() {
+  if (!battle || battle.over) return;
+  combatLog(`✦ PRINCESS DONUT fires a magic missile at the ${battle.mob.name}`, 'l-turn');
+  const r = resolveAttack(donutSheet(), battle.mob, false);
+  await playDie(r.roll, r.verdict);
+  if (!battle) return;
+  if (r.hit) {
+    const before = battle.mob.hp;
+    battle.mob.hp -= r.dmg;
+    combatLog(`  ${battle.mob.name}: ${Math.max(0, before)} → ${Math.max(0, battle.mob.hp)} HP`);
+    playImpact('mob', r.dmg, r.crit ? 'crit' : 'hit');
+    setCombatCallout(`DONUT ${r.crit ? 'CRITS' : 'HITS'}  —  ${r.dmg}`);
+  } else {
+    playImpact('mob', 0, 'miss');
+    setCombatCallout(r.verdict === 'FUMBLE' ? 'DONUT FUMBLES' : 'DONUT MISSES');
+  }
+  renderBattle();
+  await beat(560);
 }
 
 // Carl spends his turn on an inventory item (select it in the sidebar,
@@ -2536,6 +2937,13 @@ async function carlUseItemInBattle() {
 
   await beat(560);
   if (!battle || battle.over) return true;
+
+  if (battle.donutActive) {
+    await donutAct();
+    if (!battle || battle.over) return true;
+    if (battle.mob.hp <= 0) { endFight('win'); return true; }
+  }
+
   mobTurn();
   return true;
 }
@@ -2643,6 +3051,7 @@ function battleContinue() {
     placeCarl();
     applyFog();
   }
+  updateAreaMusic();
   updateEncounter();
 }
 
@@ -2693,6 +3102,7 @@ function markMobKilled(x, y) {
     marker.className = 'map-mob is-dead';
     marker.hidden = false;
   }
+  revealStairs(true); // if that was the floor's last boss, the way down opens
 }
 
 // Fight action (F key / hotbar slot): the live mob on Carl's tile, or —
@@ -2957,11 +3367,21 @@ const ITEM_USE_HANDLERS = {
   // Torch — toggle on/off. On = fog-of-war radius 2, off = 1. Reusable.
   torch(def, slot) {
     const nowOn = slot.dataset.active !== '1';
+    if (nowOn && alreadyEquipped(slot)) {
+      appendSystemLog(`Carl already has a ${def.name} going. One is plenty.`);
+      return;
+    }
     if (nowOn) slot.dataset.active = '1';
     else delete slot.dataset.active;
     slot.classList.toggle('active-item', nowOn);
     slot.title = invTooltip(def, nowOn);
     applyFog(); // radius changed — repaint what Carl can see
+    if (inSafeRoom) {
+      appendSystemLog(nowOn
+        ? 'Carl lights the torch. The safe room is lit already, so it mostly just smells.'
+        : 'Carl snuffs the torch. The safe room does not notice.');
+      return;
+    }
     appendSystemLog(nowOn
       ? 'Carl lights the torch. The dark gives up a tile.'
       : 'Carl snuffs the torch. The walls close back in.');
@@ -2971,16 +3391,10 @@ const ITEM_USE_HANDLERS = {
   // while worn, no downside, never consumed. Works mid-fight so Carl
   // can strap it on the moment things get ugly.
   'toenail-armor'(def, slot) {
-    const nowOn = slot.dataset.active !== '1';
-    if (nowOn) slot.dataset.active = '1';
-    else delete slot.dataset.active;
-    slot.classList.toggle('active-item', nowOn);
-    slot.title = invTooltip(def, nowOn);
-    if (battle) battle.carl.defense = carlArmorBonus(); // live fight feels it immediately
-    const bonus = (def.effect && def.effect.defense) || 0;
-    appendSystemLog(nowOn
-      ? `Carl straps on the ${def.name}. +${bonus} Defense — and a smell that precedes him.`
-      : `Carl peels off the ${def.name}. Defense bonus gone; so, mercifully, is some of the smell.`);
+    toggleEquipment(def, slot, {
+      on: (bonus) => `Carl straps on the ${def.name}. +${bonus} Defense — and a smell that precedes him.`,
+      off: `Carl peels off the ${def.name}. Defense bonus gone; so, mercifully, is some of the smell.`,
+    });
   },
 
   // Dynamite — a thrown burst. Combat only: flat dmgDice + dmgFlat to the
@@ -3088,7 +3502,10 @@ const ITEM_USE_HANDLERS = {
 
 function useItem(def, slot) {
   const id = def && def.id;
-  const handler = id ? ITEM_USE_HANDLERS[id] : null;
+  // items added in the editor have no handler of their own: wearable gear
+  // (see isEquippable) gets the generic put-on / take-off toggle
+  const handler = (id && ITEM_USE_HANDLERS[id])
+    || (isEquippable(def) ? (d, s) => toggleEquipment(d, s) : null);
   if (handler) {
     handler(def, slot);
     return;
@@ -3100,6 +3517,7 @@ function useItem(def, slot) {
 function activateUseAction() {
   if (battle) { carlUseItemInBattle(); return; } // in combat, Use spends the turn
   if (inSafeRoom && safeRoomUse()) return; // U on a safe-room feature tile
+  if (!selectedInvSlot && carlPos && stairsAt(carlPos.x, carlPos.y)) { descendStairs(); return; } // U on the stairwell
   if (!selectedInvSlot || !selectedInvSlot.dataset.filled) {
     appendSystemLog('Select an item first, then Use.');
     return;
@@ -3144,7 +3562,8 @@ function activateDropAction() {
     return;
   }
   dropPendingSlot = selectedInvSlot;
-  const name = selectedInvSlot.dataset.itemName || 'the item';
+  const dropCount = Number(selectedInvSlot.dataset.count) || 1;
+  const name = (dropCount > 1 ? `${dropCount}× ` : '') + (selectedInvSlot.dataset.itemName || 'the item');
   if (dropConfirmNameEl) dropConfirmNameEl.textContent = name;
   if (!dropConfirmOverlay) { confirmDrop(); return; } // no modal in the DOM — just drop
   dropConfirmOverlay.classList.add('active');
@@ -3160,8 +3579,9 @@ function confirmDrop() {
   const slot = dropPendingSlot;
   if (!slot || !slot.dataset.filled) { closeDropConfirm(); return; }
   const name = slot.dataset.itemName || 'the item';
-  removeInvSlot(slot); // wipes the slot, compacts the bag, clears the selection
-  appendSystemLog(`Carl drops ${name}. It's gone — the dungeon keeps what it's given.`);
+  const n = Number(slot.dataset.count) || 1;
+  removeInvSlot(slot, true); // wipes the whole stack, compacts the bag, clears the selection
+  appendSystemLog(`Carl drops ${n > 1 ? `${n}× ` : ''}${name}. It's gone — the dungeon keeps what it's given.`);
   closeDropConfirm();
 }
 
@@ -3426,6 +3846,37 @@ const SAFE_NPC_LINES = {
   },
 };
 
+// data/npcs.json (edited in the admin editor) overrides the built-in
+// spoken lines above. Donut's lines are scripted, so she's skipped.
+async function applyNpcData() {
+  try {
+    const res = await fetch('data/npcs.json', { cache: 'no-store' });
+    if (!res.ok) return;
+    const data = await res.json();
+    (data.npcs || []).forEach((npc) => {
+      if (!npc.tile || String(npc.tile) === '4') return;
+      if (!Array.isArray(npc.lines) || !npc.lines.length) return;
+      const prev = SAFE_NPC_LINES[npc.tile] || {};
+      SAFE_NPC_LINES[npc.tile] = { chat: npc.chat || prev.chat, lines: npc.lines };
+    });
+  } catch (err) {
+    /* keep the built-in lines */
+  }
+}
+applyNpcData();
+
+// Re-read items / mobs / NPCs after the admin editor saves, so edits show
+// up without a page reload. Called by js/admin.js on exit.
+window.refreshGameData = async function refreshGameData() {
+  itemCatalog = null;
+  mobCatalog = null;
+  await ensureItemCatalog();
+  await ensureMobCatalog();
+  await applyNpcData();
+  renderInventory(readInventory());
+  updateEncounter();
+};
+
 // U while standing on a feature tile. Returns true if it handled the
 // press (so activateUseAction knows not to also fire a normal item Use).
 // NPCs greet Carl automatically when he steps onto their tile (see
@@ -3638,19 +4089,20 @@ function readGold() {
   return Number(el && el.textContent) || 0;
 }
 
-function bagIsFull() {
+function bagIsFull(def) {
+  if (def) return !canAddToInventory(def);
   return readInventory().length >= inventoryGridEl.querySelectorAll('.inv-slot').length;
 }
 
 function renderSpellShop() {
   if (!spellShopList) return;
   const gold = readGold();
-  const full = bagIsFull();
   if (spellShopGoldEl) spellShopGoldEl.textContent = String(gold);
 
   spellShopList.innerHTML = '';
   spellShopStock().forEach((def) => {
     const price = Number(def.value) || 0;
+    const full = bagIsFull(def);
     const icon = def.iconImage
       ? `<img src="${escapeHtml(def.iconImage)}" alt=""`
         + ` onerror="const p=this.parentElement; this.remove(); p.textContent=${JSON.stringify(def.icon || '')};">`
@@ -3682,7 +4134,7 @@ function buySpell(id) {
     appendChatLine('"Come back when you can pay for it."', 'tiatha');
     return;
   }
-  if (bagIsFull()) {
+  if (bagIsFull(def)) {
     appendSystemLog("Carl's bag is full — nowhere to put a new spell.");
     return;
   }
@@ -3833,7 +4285,6 @@ function shopIconHtml(def) {
 
 function renderShopBuyList() {
   const gold = readGold();
-  const full = bagIsFull();
   const stock = shopBuyStock();
   if (!stock.length) {
     shopListEl.innerHTML = '<p class="shop-empty">Bautista has nothing to sell right now.</p>';
@@ -3850,7 +4301,7 @@ function renderShopBuyList() {
       + `<button type="button" class="shop-act" data-act="buy" data-id="${escapeHtml(def.id)}">BUY &middot; ~${quote}g</button>`;
     row._card = itemEncounterCard(def);
     const btn = row.querySelector('.shop-act');
-    if (full) { btn.disabled = true; btn.textContent = 'BAG FULL'; }
+    if (bagIsFull(def)) { btn.disabled = true; btn.textContent = 'BAG FULL'; } // no free slot and no stack to join
     else if (gold < worst) { btn.disabled = true; btn.textContent = `NEED ~${worst}g`; }
     shopListEl.appendChild(row);
   });
@@ -3868,9 +4319,10 @@ function renderShopSellList() {
     const row = document.createElement('div');
     row.className = 'shop-row';
     const name = (def && def.name) || entry.name || 'Unknown';
+    const stackNote = Number(entry.count) > 1 ? ` ×${Number(entry.count)}` : '';
     const blurb = (def && (def.tooltip || def.description)) || '';
     row.innerHTML = `<div class="shop-row-icon">${shopIconHtml(def || entry)}</div>`
-      + `<div><p class="shop-row-name">${escapeHtml(name)}</p>`
+      + `<div><p class="shop-row-name">${escapeHtml(name)}${stackNote}</p>`
       + `<p class="shop-row-blurb">${escapeHtml(blurb)}</p></div>`
       + `<button type="button" class="shop-act" data-act="sell" data-idx="${idx}">`
       + `${worth > 0 ? `SELL &middot; ~${worth}g` : 'NO VALUE'}</button>`;
@@ -3897,7 +4349,7 @@ function renderShop() {
 function shopBuy(id) {
   const def = itemCatalog && itemCatalog[id];
   if (!def || !shopCanBuy(def)) return;
-  if (bagIsFull()) {
+  if (bagIsFull(def)) {
     appendSystemLog("Carl's bag is full — sell or drop something first.");
     return;
   }
@@ -3927,7 +4379,13 @@ function shopSell(idx) {
   }
   const h = rollHaggle();
   const payout = Math.max(1, Math.floor(worth * h.sellMult));
-  bag.splice(idx, 1);
+  // sell one at a time: a stack just loses one, the entry goes when it's the last
+  const have = Number(entry.count) || 1;
+  if (have > 1) {
+    if (have === 2) delete entry.count; else entry.count = have - 1;
+  } else {
+    bag.splice(idx, 1);
+  }
   renderInventory(bag);
   updateEncounter(); // the sold item may have been pinned in the panel
   addGold(payout);
@@ -3977,6 +4435,112 @@ if (shopOverlay) {
   });
 }
 
+// =======================================================
+// Feedback — Bug Report / Feature Request modal. One form, two modes;
+// submits to /api/feedback which appends to data/feedback.json.
+// =======================================================
+
+const feedbackOverlay = document.getElementById('feedback-overlay');
+const FEEDBACK_MODES = {
+  bug: {
+    kicker: '◆ BUG REPORT ◆', heading: 'REPORT A BUG',
+    descLabel: 'WHAT HAPPENED? (STEPS TO REPRODUCE HELP)',
+    titlePh: 'Short summary of the problem',
+    descPh: 'What did you do, what did you expect, and what happened instead?',
+  },
+  feature: {
+    kicker: '◆ FEATURE REQUEST ◆', heading: 'SUGGEST A FEATURE',
+    descLabel: 'WHAT WOULD YOU LIKE TO SEE?',
+    titlePh: 'Short name for the idea',
+    descPh: 'Describe the feature and why it would make the game better.',
+  },
+};
+let feedbackMode = 'bug';
+let feedbackSending = false;
+
+function feedbackEl(id) { return document.getElementById(id); }
+
+function openFeedback(mode) {
+  if (!feedbackOverlay) return;
+  feedbackMode = mode;
+  const m = FEEDBACK_MODES[mode];
+  feedbackEl('feedback-kicker').textContent = m.kicker;
+  feedbackEl('feedback-heading').textContent = m.heading;
+  feedbackEl('feedback-desc-label').textContent = m.descLabel;
+  feedbackEl('feedback-title').placeholder = m.titlePh;
+  feedbackEl('feedback-desc').placeholder = m.descPh;
+  feedbackEl('feedback-title').value = '';
+  feedbackEl('feedback-desc').value = '';
+  setFeedbackStatus('');
+  feedbackOverlay.classList.add('active');
+  feedbackEl('feedback-title').focus();
+}
+
+function closeFeedback() {
+  if (feedbackOverlay) feedbackOverlay.classList.remove('active');
+}
+
+function setFeedbackStatus(text, ok) {
+  const el = feedbackEl('feedback-status');
+  el.textContent = text;
+  el.classList.toggle('ok', !!ok);
+}
+
+async function submitFeedback() {
+  if (feedbackSending) return;
+  const title = feedbackEl('feedback-title').value.trim();
+  const description = feedbackEl('feedback-desc').value.trim();
+  if (!title || !description) {
+    setFeedbackStatus('Please fill in both the title and the description.');
+    return;
+  }
+  const context = {
+    floor: currentLevelMap ? currentLevelMap.level : null,
+    position: carlPos ? { x: carlPos.x, y: carlPos.y } : null,
+    inBattle: !!battle,
+    userAgent: navigator.userAgent,
+  };
+  feedbackSending = true;
+  setFeedbackStatus('Sending…', true);
+  try {
+    const res = await fetch('/api/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: feedbackMode, title, description, context }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Server error');
+    }
+    closeFeedback();
+    appendSystemLog(feedbackMode === 'bug'
+      ? 'Bug report filed. The System pretends to be sorry.'
+      : 'Feature request filed. The System will consider it. (It will not.)');
+  } catch (e) {
+    setFeedbackStatus(`Could not send: ${e.message}`);
+  } finally {
+    feedbackSending = false;
+  }
+}
+
+if (feedbackOverlay) {
+  const bugBtn = document.getElementById('bug-report-btn');
+  const featBtn = document.getElementById('feature-request-btn');
+  if (bugBtn) bugBtn.addEventListener('click', () => openFeedback('bug'));
+  if (featBtn) featBtn.addEventListener('click', () => openFeedback('feature'));
+  feedbackEl('feedback-submit-btn').addEventListener('click', submitFeedback);
+  feedbackEl('feedback-cancel-btn').addEventListener('click', closeFeedback);
+  feedbackOverlay.addEventListener('mousedown', (event) => {
+    if (event.target === feedbackOverlay) closeFeedback();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && feedbackOverlay.classList.contains('active')) {
+      event.preventDefault();
+      closeFeedback();
+    }
+  });
+}
+
 // --- footlocker stash ---------------------------------------
 const stashOverlay = document.getElementById('stash-overlay');
 const stashBagGrid = document.getElementById('stash-bag-grid');
@@ -4002,12 +4566,13 @@ function renderItemGrid(gridEl, items, which, slots) {
       } else {
         slot.textContent = it.icon || '';
       }
+      if (Number(it.count) > 1) slot.insertAdjacentHTML('beforeend', `<span class="inv-slot-count">${Number(it.count)}</span>`);
     }
     gridEl.appendChild(slot);
   }
 }
 function renderStashGrids() {
-  renderItemGrid(stashBagGrid, readInventory(), 'bag', 8);
+  renderItemGrid(stashBagGrid, readInventory(), 'bag', inventoryGridEl.querySelectorAll('.inv-slot').length);
   renderItemGrid(stashBoxGrid, stashItems, 'box', STASH_SLOTS);
 }
 function openStash() {
@@ -4023,17 +4588,23 @@ function stashMove(which, idx) {
     const bag = readInventory();
     const it = bag[idx];
     if (!it) return;
-    if (stashItems.length >= STASH_SLOTS) { appendSystemLog('The footlocker is full.'); return; }
     bag.splice(idx, 1);
-    stashItems.push(it);
+    const left = pushStacked(stashItems, it, STASH_SLOTS);
+    if (left > 0) {
+      appendSystemLog('The footlocker is full.');
+      bag.splice(idx, 0, left < (Number(it.count) || 1) ? { ...it, count: left } : it);
+    }
     renderInventory(bag);
   } else {
     const it = stashItems[idx];
     if (!it) return;
     const bag = readInventory();
-    if (bag.length >= 8) { appendSystemLog("Carl's bag is full — make room first."); return; }
     stashItems.splice(idx, 1);
-    bag.push(it);
+    const left = pushStacked(bag, it, inventoryGridEl.querySelectorAll('.inv-slot').length);
+    if (left > 0) {
+      appendSystemLog("Carl's bag is full — make room first.");
+      stashItems.splice(idx, 0, left < (Number(it.count) || 1) ? { ...it, count: left } : it);
+    }
     renderInventory(bag);
   }
   renderStashGrids();

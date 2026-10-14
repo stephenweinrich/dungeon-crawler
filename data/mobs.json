@@ -47,7 +47,13 @@
         "attack": 10,
         "defense": 3,
         "xp": 50,
-        "drops": [{ "id": "dynamite", "min": 1, "max": 2 }],
+        "drops": [
+          {
+            "id": "dynamite",
+            "min": 1,
+            "max": 2
+          }
+        ],
         "basedOn": "tone: goblins appear in the series, but this crawlspace-squatter framing is invented for Floor 1",
         "description": "A knee-high entrepreneur who has annexed three feet of ductwork as sovereign territory and defends it with a sharpened spork. Drops decent loot, most of it lifted off crawlers who also underestimated the spork — and a stick or two of dynamite from the stash he'd rather you didn't find."
       },
@@ -93,6 +99,20 @@
         "xp": 500,
         "basedOn": "room 'Warden's Reliquary' + DCC's early-floor keeper/jailer archetype. The exact Book 1 Floor 1 boss isn't pinned down here, so this is room-name-driven and tone-accurate rather than confirmed canon — swap freely once you name the book boss.",
         "description": "The System's appointed keeper of everything Floor One's dead no longer need — confiscated blades, unclaimed corpses, the security deposits of crawlers who never made the stairs. It wears a rusted iron helm with no eye-slits and carries a ring of keys for every door you were forced to smash through. It has never lost a fight in this room. Put it down and the Reliquary opens; the sponsors would honestly prefer you tried and failed on camera."
+      },
+      {
+        "id": "spider",
+        "name": "Spider",
+        "icon": "🐀",
+        "image": "assets/mobs/spider.png",
+        "iconImage": "assets/icons/mob-spider.png",
+        "role": "fast fodder",
+        "hp": 10,
+        "attack": 5,
+        "defense": 2,
+        "xp": 40,
+        "basedOn": "",
+        "description": "Congratulations! You’ve encountered the eight-legged panic button of the lower floors. The System tried to make these spiders larger, but it ran out of pixels and empathy. Moves disturbingly fast, like your debt collectors after a bonus round. Good news: if you squash it, the goo stains won’t come out, but at least you’ll feel alive."
       }
     ]
   }
