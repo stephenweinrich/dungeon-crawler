@@ -256,7 +256,10 @@ function handleFeedback(req, res) {
 // Everything but login needs the X-Admin-Token header from a login.
 // Password: "damnitdonut", unless the ADMIN_PASSWORD env var overrides it.
 // =======================================================
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'damnitdonut';
+// On Azure App Service (WEBSITE_SITE_NAME is set there) the built-in default is NOT used:
+// the repo is public-facing, so the editor stays disabled until ADMIN_PASSWORD is configured.
+const ON_AZURE = !!process.env.WEBSITE_SITE_NAME;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (ON_AZURE ? '' : 'damnitdonut');
 const adminTokens = new Set();
 let adminFailures = 0;
 const ADMIN_KINDS = { items: 'items.json', mobs: 'mobs.json', npcs: 'npcs.json' };
@@ -756,6 +759,9 @@ const server = http.createServer((req, res) => {
     if (req.method === 'DELETE') return handleDeleteSlot(req, res, slot);
   }
 
+  if (pathname.startsWith('/api/admin/') && !ADMIN_PASSWORD) {
+    return sendJson(res, 503, { error: 'The admin editor is disabled: set the ADMIN_PASSWORD app setting.' });
+  }
   if (pathname === '/api/admin/login' && req.method === 'POST') {
     handleAdminLogin(req, res);
     return;
